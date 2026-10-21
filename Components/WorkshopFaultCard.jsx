@@ -33,10 +33,15 @@ export default function WorkshopFaultCard({ fault, onCleared }) {
       <h4 className="font-bold">{fault.reg}</h4>
 
       <p className="text-sm text-gray-600 mt-1">
-        {fault.checkLabel || "Vehicle fault"}
+      {fault.checkLabel ||
+            (fault.inspectionId
+           ? "Additional issue reported during inspection"
+          : "Vehicle fault")}
       </p>
 
-      <p className="text-sm mt-2">{fault.description}</p>
+      <p className="text-sm mt-2 whitespace-pre-wrap break-words">
+  {fault.description}
+</p>
 
       <p className="text-xs text-gray-500 mt-2">
         Status: {fault.status}

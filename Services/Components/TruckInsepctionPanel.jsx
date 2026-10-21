@@ -187,6 +187,25 @@ const submitInspection = async () => {
             Save each answer before continuing.
           </p>
 
+/// button just for testing purposes, will be removed in 
+{inspection.status === "Draft" && (
+  <button
+    type="button"
+    onClick={() => {
+      setAnswers((current) =>
+        current.map((answer) => ({
+          ...answer,
+          hasDefect: false
+        }))
+      );
+    }}
+    disabled={busy}
+    className="border rounded-lg px-4 py-2 mb-3 text-sm disabled:opacity-40"
+  >
+    Testing: set all answers to No
+  </button>
+)}
+
           {inspection.answers.map((answer) => (
             <InspectionAnswer
               key={`${inspection.id}-${answer.id}`}

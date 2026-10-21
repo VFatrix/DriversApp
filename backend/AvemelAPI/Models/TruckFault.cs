@@ -10,6 +10,12 @@ namespace Avemel.API.Models
 
         public Truck Truck { get; set; } = null!;
 
+        // Optional: links an inspection-reported fault to its evidence.
+        // Faults reported directly by Workshop can leave this empty.
+        public int? TruckInspectionId { get; set; }
+
+        public TruckInspection? TruckInspection { get; set; }
+
         // Optional so Workshop can also report faults directly.
         public int? TruckInspectionAnswerId { get; set; }
 

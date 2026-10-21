@@ -177,6 +177,9 @@ namespace AvemelAPI.Migrations
                     b.Property<int?>("TruckInspectionAnswerId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("TruckInspectionId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClearedByUserId");
@@ -186,6 +189,8 @@ namespace AvemelAPI.Migrations
                     b.HasIndex("TruckInspectionAnswerId")
                         .IsUnique()
                         .HasFilter("\"TruckInspectionAnswerId\" IS NOT NULL");
+
+                    b.HasIndex("TruckInspectionId");
 
                     b.HasIndex("TruckId", "Status");
 
@@ -411,11 +416,18 @@ namespace AvemelAPI.Migrations
                         .HasForeignKey("TruckInspectionAnswerId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Avemel.API.Models.TruckInspection", "TruckInspection")
+                        .WithMany()
+                        .HasForeignKey("TruckInspectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("ClearedByUser");
 
                     b.Navigation("ReportedByUser");
 
                     b.Navigation("Truck");
+
+                    b.Navigation("TruckInspection");
 
                     b.Navigation("TruckInspectionAnswer");
                 });

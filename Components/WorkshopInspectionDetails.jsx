@@ -89,6 +89,18 @@ export default function WorkshopInspectionDetails({ inspectionId }) {
         </div>
       ))}
 
+<div className="mt-4 border rounded-lg p-3 bg-white">
+  <h4 className="font-bold mb-2">
+    Other issues / comments
+  </h4>
+
+  <p className="text-sm whitespace-pre-wrap break-words">
+    {inspection.additionalComments?.trim() ||
+      "No additional issues or comments were reported."}
+  </p>
+</div>
+
+
       <h4 className="font-bold mt-4 mb-2">Inspection photos</h4>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

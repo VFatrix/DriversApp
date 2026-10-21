@@ -150,6 +150,10 @@ namespace Avemel.API.Data
             modelBuilder.Entity<TruckFault>(entity =>
             {
                 entity.HasKey(x => x.Id);
+                entity.HasOne(x => x.TruckInspection)
+               .WithMany()
+               .HasForeignKey(x => x.TruckInspectionId)
+               .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(x => new { x.TruckId, x.Status });
 
