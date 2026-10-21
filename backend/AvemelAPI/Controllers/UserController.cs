@@ -53,6 +53,32 @@ namespace Avemel.API.Controllers
             }
         }
 
+        // PUT: api/users/5/password
+        [HttpPut("{id:int:min(1)}/password")]
+        public async Task<IActionResult> ResetPassword(
+            int id,
+            [FromBody] ResetUserPasswordRequestDto request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _userService.ResetPasswordAsync(
+                    id,
+                    request,
+                    cancellationToken);
+
+                return NoContent();
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
         // GET: api/users/5
         [HttpGet("{id:int:min(1)}")]
         public async Task<ActionResult<UserResponseDto>> GetById(

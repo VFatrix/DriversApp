@@ -82,6 +82,19 @@ namespace Avemel.API.Services
             return ToResponse(user);
         }
 
+
+        public async Task<List<UserResponseDto>> GetAllAsync(
+    CancellationToken cancellationToken = default)
+        {
+            var users = await _db.Users
+                .AsNoTracking()
+                .OrderBy(user => user.FullName)
+                .ThenBy(user => user.Id)
+                .ToListAsync(cancellationToken);
+
+            return users.Select(ToResponse).ToList();
+        }
+
         public async Task<UserResponseDto?> GetByIdAsync(
             int id,
             CancellationToken cancellationToken = default)
@@ -93,6 +106,38 @@ namespace Avemel.API.Services
                     cancellationToken);
 
             return user == null ? null : ToResponse(user);
+        }
+
+        public async Task ResetPasswordAsync(
+    int userId,
+    ResetUserPasswordRequestDto request,
+    CancellationToken cancellationToken = default)
+        {
+            Validator.ValidateObject(
+                request,
+                new ValidationContext(request),
+                validateAllProperties: true);
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                throw new ValidationException(
+                    "The new password cannot be blank.");
+            }
+
+            var user = await _db.Users.SingleOrDefaultAsync(
+                u => u.Id == userId,
+                cancellationToken);
+
+            if (user is null)
+            {
+                throw new KeyNotFoundException("User not found.");
+            }
+
+            user.PasswordHash = _passwordHasher.HashPassword(
+                user,
+                request.NewPassword);
+
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         private static UserResponseDto ToResponse(AppUser user)

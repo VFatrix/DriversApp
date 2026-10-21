@@ -11,5 +11,13 @@ namespace Avemel.API.Services
         Task<UserResponseDto?> GetByIdAsync(
             int id,
             CancellationToken cancellationToken = default);
+
+        Task ResetPasswordAsync(
+        int userId,
+          ResetUserPasswordRequestDto request,
+          CancellationToken cancellationToken = default);
+
+        Task<List<UserResponseDto>> GetAllAsync(
+          CancellationToken cancellationToken = default);
     }
 }

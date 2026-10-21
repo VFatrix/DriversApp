@@ -187,7 +187,7 @@ const submitInspection = async () => {
             Save each answer before continuing.
           </p>
 
-/// button just for testing purposes, will be removed in 
+/*/// button just for testing purposes, will be removed in  */
 {inspection.status === "Draft" && (
   <button
     type="button"
@@ -195,7 +195,7 @@ const submitInspection = async () => {
       setAnswers((current) =>
         current.map((answer) => ({
           ...answer,
-          hasDefect: false
+          hasDefect: false8
         }))
       );
     }}

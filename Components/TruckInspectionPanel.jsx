@@ -273,6 +273,28 @@ export default function TruckInspectionPanel({
             Yes = a defect was found. No = no defect was found.
           </p>
 
+ {/*//////////////////this is a button just for testing\\\\\\\\\\\\\\\\\\\\ */}
+
+{inspection.status === "Draft" && (
+  <button
+    type="button"
+    onClick={() => {
+      setAnswers((current) =>
+        current.map((answer) => ({
+          ...answer,
+          hasDefect: false
+        }))
+      );
+      setSaveMessage("");
+    }}
+    disabled={readOnly}
+    className="bg-gray-700 text-white rounded-lg px-4 py-2 mb-4 disabled:opacity-40"
+  >
+    Testing: select all No
+  </button>
+)}
+
+
           {answers.map((answer) => (
             <InspectionAnswer
               key={`${inspection.id}-${answer.id}`}
@@ -351,6 +373,40 @@ export default function TruckInspectionPanel({
               >
                 {submitting ? "Submitting…" : "Submit inspection"}
               </button>
+
+               <div aria-live="polite" className="text-sm mt-3 space-y-1">
+  {!allAnswered && (
+    <p className="text-red-700">
+      Answer all 21 questions. Currently answered: {answeredCount}.
+    </p>
+  )}
+
+  {!allPhotosUploaded && (
+    <p className="text-red-700">
+      Upload the missing photos:{" "}
+      {PHOTO_ANGLES
+        .filter(([angle]) =>
+          !inspection.photos?.some(
+            (photo) => photo.angle === angle
+          )
+        )
+        .map(([, label]) => label)
+        .join(", ")}.
+    </p>
+  )}
+
+  {hasUnsavedChanges && (
+    <p className="text-red-700">
+      Press Save answers below to save your answers and comments.
+    </p>
+  )}
+
+  {canSubmit && (
+    <p className="text-green-700">
+      All required answers and photos are saved. Ready to submit.
+    </p>
+  )}
+</div>
 
               <p className="text-xs text-gray-500 mt-2">
                 Save all 21 answers and upload all four photos
