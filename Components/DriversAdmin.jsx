@@ -63,6 +63,37 @@ const addDriver = async (event) => {
   }
 };
 
+const resetPassword = async (event, driver) => {
+  event.preventDefault();
+
+  if (resettingId !== null) return;
+
+  const newPassword = resetPasswords[driver.id] || "";
+
+  if (!newPassword.trim() || newPassword.length < 12) {
+    setError("Enter a password of at least 12 characters.");
+    return;
+  }
+
+  setResettingId(driver.id);
+  setError("");
+  setMessage("");
+
+  try {
+    await userService.resetPassword(driver.id, newPassword);
+
+    setResetPasswords((current) => ({
+      ...current,
+      [driver.id]: ""
+    }));
+
+    setMessage(`Password updated for ${driver.username}.`);
+  } catch (err) {
+    setError(err.message || "Unable to reset the password.");
+  } finally {
+    setResettingId(null);
+  }
+};
 
   return (
     <section className="bg-white border rounded-xl p-4">
