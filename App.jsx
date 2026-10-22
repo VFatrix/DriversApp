@@ -3,7 +3,8 @@ import * as XLSX from "xlsx";
 import authService from "/services/authService";
 import WorkshopReplacementList from "./components/WorkshopReplacementList";
 import WorkshopFaultList from "./components/WorkshopFaultList";
-import DriverTruckFaults from "./components/DriverTruckFaults";
+import DriversAdmin from "./Components/DriversAdmin";
+import DriverTruckFaults from "/components/DriverTruckFaults";
 import DriverVehicleWorkflow from "./Components/DriverVehicleWorkflow";
 
 const RED = "#EA2227";
@@ -621,7 +622,7 @@ function AnnounceCompose({ data, addAnnouncement, removeAnnouncement }) {
   );
 }
 
-function DriversAdmin({ fleet, saveFleet }) {
+function LegacyDriversAdmin({ fleet, saveFleet }) {
   const auth = fleet.driverAuth || {};
   const [name, setName] = useState("");
   const [pass, setPass] = useState("");
@@ -684,7 +685,7 @@ function BackendAdmin({ fleet, saveFleet, data }) {
   return (
     <div>
       <Tabs value={tab} onChange={setTab} tabs={[{ k: "drivers", label: "Drivers" }, { k: "fleet", label: "Fleet list" }]} />
-      {tab === "drivers" ? <DriversAdmin {...{ fleet, saveFleet }} /> : <FleetManage {...{ fleet, saveFleet, data }} />}
+      {tab === "drivers" ? <DriversAdmin /> : <FleetManage {...{ fleet, saveFleet, data }} />}
     </div>
   );
 }

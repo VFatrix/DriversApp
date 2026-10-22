@@ -79,6 +79,17 @@ namespace Avemel.API.Controllers
             }
         }
 
+        // GET: api/users
+        [HttpGet]
+        public async Task<ActionResult<List<UserResponseDto>>> GetAll(
+            CancellationToken cancellationToken)
+        {
+            var users = await _userService.GetAllAsync(
+                cancellationToken);
+
+            return Ok(users);
+        }
+
         // GET: api/users/5
         [HttpGet("{id:int:min(1)}")]
         public async Task<ActionResult<UserResponseDto>> GetById(
