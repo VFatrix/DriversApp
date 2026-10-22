@@ -5,6 +5,8 @@ export default function DriversAdmin() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [resetPasswords, setResetPasswords] = useState({});
+const [resettingId, setResettingId] = useState(null);
   const [fullName, setFullName] = useState("");
 const [username, setUsername] = useState("");
 const [password, setPassword] = useState("");
@@ -166,6 +168,43 @@ const addDriver = async (event) => {
               <p className="text-sm">
                 {driver.isActive ? "Active" : "Inactive"}
               </p>
+              <form
+  onSubmit={(event) => resetPassword(event, driver)}
+  className="mt-3"
+>
+  <label className="block text-sm">
+    New password
+    <input
+      type="password"
+      value={resetPasswords[driver.id] || ""}
+      onChange={(event) =>
+        setResetPasswords((current) => ({
+          ...current,
+          [driver.id]: event.target.value
+        }))
+      }
+      required
+      minLength={12}
+      maxLength={256}
+      autoComplete="new-password"
+      disabled={resettingId !== null}
+      className="block w-full border rounded-lg p-2 mt-1"
+    />
+  </label>
+
+  <button
+    type="submit"
+    disabled={
+      resettingId !== null ||
+      !(resetPasswords[driver.id] || "").trim()
+    }
+    className="mt-2 bg-gray-700 text-white rounded-lg px-4 py-2 disabled:opacity-40"
+  >
+    {resettingId === driver.id
+      ? "Updating…"
+      : "Reset password"}
+  </button>
+</form>
             </div>
           ))}
         </div>
