@@ -122,6 +122,29 @@ namespace Avemel.API.Controllers
             }
         }
 
+        // PUT: api/users/5/restore
+        [HttpPut("{id:int:min(1)}/restore")]
+        public async Task<IActionResult> RestoreDriver(
+            int id,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _userService.RestoreDriverAsync(
+                    id,
+                    cancellationToken);
+
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new
+                {
+                    message = exception.Message
+                });
+            }
+        }
+
         // GET: api/users/5
         [HttpGet("{id:int:min(1)}")]
         public async Task<ActionResult<UserResponseDto>> GetById(

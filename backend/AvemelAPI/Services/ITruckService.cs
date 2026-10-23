@@ -17,5 +17,13 @@ namespace Avemel.API.Services
 
         Task<List<TruckResponseDto>> GetAvailableAsync(
             CancellationToken cancellationToken = default);
+
+        Task ArchiveAsync(
+          int id,
+              CancellationToken cancellationToken = default);
+
+        Task RestoreAsync(
+            int id,
+            CancellationToken cancellationToken = default);
     }
 }

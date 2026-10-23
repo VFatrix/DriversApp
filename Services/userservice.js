@@ -21,6 +21,11 @@ const userService = {
               method: "PUT"
                }),
 
+               restoreDriver: (userId) =>
+               apiRequest(`/api/users/${userId}/restore`, {
+                  method: "PUT"
+                }),
+
 
   resetPassword: (userId, newPassword) =>
     apiRequest(`/api/users/${userId}/password`, {

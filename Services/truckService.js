@@ -1,6 +1,24 @@
 import { apiRequest } from "./api";
 
 const truckService = {
+  getAll: () => apiRequest("/api/trucks"),
+  createTruck: (registrationNumber, makeModel) =>
+  apiRequest("/api/trucks", {
+    method: "POST",
+    body: {
+      reg: registrationNumber.trim().toUpperCase(),
+      make: makeModel.trim()
+    }
+  }),
+  archiveTruck: (truckId) =>
+  apiRequest(`/api/trucks/${truckId}/archive`, {
+    method: "PUT"
+  }),
+
+restoreTruck: (truckId) =>
+  apiRequest(`/api/trucks/${truckId}/restore`, {
+    method: "PUT"
+  }),
   getAvailable: () => {
     return apiRequest("/api/trucks/available");
   },

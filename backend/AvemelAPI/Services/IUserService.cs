@@ -22,5 +22,9 @@ namespace Avemel.API.Services
         Task ArchiveDriverAsync(
           int id,
          CancellationToken cancellationToken = default);
+
+        Task RestoreDriverAsync(
+         int id,
+         CancellationToken cancellationToken = default);
     }
 }

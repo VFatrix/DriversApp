@@ -6,6 +6,7 @@ import WorkshopFaultList from "./components/WorkshopFaultList";
 import DriversAdmin from "./Components/DriversAdmin";
 import DriverTruckFaults from "/components/DriverTruckFaults";
 import DriverVehicleWorkflow from "./Components/DriverVehicleWorkflow";
+import TrucksAdmin from "./Components/TrucksAdmin";
 
 const RED = "#EA2227";
 const DARK = "#1b1b1b";
@@ -711,10 +712,7 @@ function FleetManage({ fleet, saveFleet, data }) {
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <Stat n={`${availTrucks}/${fleet.vehicles.length}`} l="Trucks free" />
-        <Stat n={`${availTrailers}/${fleet.trailers.length}`} l="Trailers free" />
-      </div>
+      <TrucksAdmin />
 
       <div className="bg-white rounded-xl p-4 border shadow-sm mb-3" style={{ borderColor: "#e5e5e5" }}>
         <h3 className="font-bold mb-2" style={{ color: DARK }}>Add truck</h3>

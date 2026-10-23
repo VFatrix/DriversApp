@@ -110,6 +110,80 @@ namespace Avemel.API.Services
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task ArchiveAsync(
+    int id,
+    CancellationToken cancellationToken = default)
+        {
+            await using var transaction =
+                await _db.Database.BeginTransactionAsync(
+                    System.Data.IsolationLevel.Serializable,
+                    cancellationToken);
+
+            try
+            {
+                var truck = await _db.Trucks.SingleOrDefaultAsync(
+                    t => t.Id == id,
+                    cancellationToken);
+
+                if (truck is null)
+                {
+                    throw new KeyNotFoundException("Truck not found.");
+                }
+
+                var hasActiveAssignment = await _db.TruckAssignments.AnyAsync(
+                    assignment =>
+                        assignment.TruckId == id &&
+                        assignment.ReleasedAt == null,
+                    cancellationToken);
+
+                if (hasActiveAssignment)
+                {
+                    throw new InvalidOperationException(
+                        "Release the truck's active assignment before archiving.");
+                }
+
+                truck.IsActive = false;
+
+                await _db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (Exception exception) when (
+                exception is PostgresException
+                {
+                    SqlState: PostgresErrorCodes.SerializationFailure
+                } ||
+                exception is DbUpdateException
+                {
+                    InnerException: PostgresException
+                    {
+                        SqlState: PostgresErrorCodes.SerializationFailure
+                    }
+                })
+            {
+                throw new InvalidOperationException(
+                    "Truck availability changed. Refresh and try again.",
+                    exception);
+            }
+        }
+
+        public async Task RestoreAsync(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            var truck = await _db.Trucks.SingleOrDefaultAsync(
+                t => t.Id == id,
+                cancellationToken);
+
+            if (truck is null)
+            {
+                throw new KeyNotFoundException("Truck not found.");
+            }
+
+            truck.IsActive = true;
+
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
         private IQueryable<TruckResponseDto> GetTruckQuery()
         {
             return _db.Trucks

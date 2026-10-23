@@ -12,6 +12,8 @@ const [username, setUsername] = useState("");
 const [password, setPassword] = useState("");
 const [creating, setCreating] = useState(false);
 const [archivingId, setArchivingId] = useState(null);
+const [driverFilter, setDriverFilter] = useState("active");
+const [restoringId, setRestoringId] = useState(null);
 const [message, setMessage] = useState("");
 
   const loadDrivers = async () => {
@@ -98,7 +100,7 @@ const resetPassword = async (event, driver) => {
 
 
 const archiveDriver = async (driver) => {
-  if (archivingId !== null) return;
+ if (archivingId !== null || restoringId !== null) return;
 
   const confirmed = window.confirm(
     `Archive ${driver.fullName} (${driver.username})? They will no longer be able to log in.`
@@ -126,6 +128,38 @@ const archiveDriver = async (driver) => {
     setError(err.message || "Unable to archive the driver.");
   } finally {
     setArchivingId(null);
+  }
+};
+
+const visibleDrivers = drivers.filter((driver) => {
+  if (driverFilter === "active") return driver.isActive;
+  if (driverFilter === "archived") return !driver.isActive;
+  return true;
+});
+                
+              const restoreDriver = async (driver) => {
+  if (restoringId !== null || archivingId !== null) return;
+
+  setRestoringId(driver.id);
+  setError("");
+  setMessage("");
+
+  try {
+    await userService.restoreDriver(driver.id);
+
+    setDrivers((current) =>
+      current.map((item) =>
+        item.id === driver.id
+          ? { ...item, isActive: true }
+          : item
+      )
+    );
+
+    setMessage(`Driver ${driver.username} restored successfully.`);
+  } catch (err) {
+    setError(err.message || "Unable to restore the driver.");
+  } finally {
+    setRestoringId(null);
   }
 };
 
@@ -191,6 +225,20 @@ const archiveDriver = async (driver) => {
       className="bg-red-700 text-white rounded-lg px-4 py-2 disabled:opacity-40"
     >
       {creating ? "Saving…" : "Add driver"}
+
+
+      <label className="block text-sm mb-3">
+  Show drivers
+  <select
+    value={driverFilter}
+    onChange={(event) => setDriverFilter(event.target.value)}
+    className="block w-full border rounded-lg p-2 mt-1"
+  >
+    <option value="active">Active drivers</option>
+    <option value="archived">Archived drivers</option>
+    <option value="all">All drivers</option>
+  </select>
+</label>
     </button>
   </fieldset>
 </form>
@@ -220,11 +268,11 @@ const archiveDriver = async (driver) => {
         <p>Loading drivers…</p>
       ) : (
         <div className="space-y-2">
-          {drivers.length === 0 && !error && (
-            <p>No drivers found.</p>
-          )}
+         {visibleDrivers.length === 0 && !error && (
+  <p>No drivers found for this filter.</p>
+)}
 
-          {drivers.map((driver) => (
+   {visibleDrivers.map((driver) => (
             <div key={driver.id} className="border rounded-lg p-3">
               <p className="font-semibold">{driver.fullName}</p>
               <p className="text-sm text-gray-600">
@@ -234,16 +282,28 @@ const archiveDriver = async (driver) => {
   {driver.isActive ? "Active" : "Archived"}
 </p>
 
-{driver.isActive && (
-  <button
+    {driver.isActive && (
+    <button
     type="button"
     onClick={() => archiveDriver(driver)}
-    disabled={archivingId !== null}
+    disabled={archivingId !== null || restoringId !== null}
     className="mt-2 bg-red-700 text-white rounded-lg px-4 py-2 disabled:opacity-40"
-  >
+    >
     {archivingId === driver.id ? "Archiving…" : "Archive driver"}
+    </button>
+  )}
+
+  {!driver.isActive && (
+  <button
+    type="button"
+    onClick={() => restoreDriver(driver)}
+    disabled={restoringId !== null || archivingId !== null}
+    className="mt-2 bg-green-700 text-white rounded-lg px-4 py-2 disabled:opacity-40"
+  >
+    {restoringId === driver.id ? "Restoring…" : "Restore driver"}
   </button>
 )}
+
               <form
   onSubmit={(event) => resetPassword(event, driver)}
   className="mt-3"

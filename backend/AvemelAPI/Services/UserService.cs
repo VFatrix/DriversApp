@@ -110,9 +110,9 @@ namespace Avemel.API.Services
 
 
         public async Task ResetPasswordAsync(
-    int userId,
-    ResetUserPasswordRequestDto request,
-    CancellationToken cancellationToken = default)
+                int userId,
+               ResetUserPasswordRequestDto request,
+               CancellationToken cancellationToken = default)
         {
             Validator.ValidateObject(
                 request,
@@ -142,8 +142,8 @@ namespace Avemel.API.Services
         }
 
         public async Task ArchiveDriverAsync(
-    int id,
-    CancellationToken cancellationToken = default)
+         int id,
+           CancellationToken cancellationToken = default)
         {
             var user = await _db.Users.SingleOrDefaultAsync(
                 u => u.Id == id,
@@ -172,6 +172,30 @@ namespace Avemel.API.Services
             }
 
             user.IsActive = false;
+
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+
+        public async Task RestoreDriverAsync(
+    int id,
+    CancellationToken cancellationToken = default)
+        {
+            var user = await _db.Users.SingleOrDefaultAsync(
+                u => u.Id == id,
+                cancellationToken);
+
+            if (user is null || user.Role != "Driver")
+            {
+                throw new KeyNotFoundException("Driver not found.");
+            }
+
+            if (user.IsActive)
+            {
+                return;
+            }
+
+            user.IsActive = true;
 
             await _db.SaveChangesAsync(cancellationToken);
         }

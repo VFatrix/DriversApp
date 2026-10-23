@@ -89,6 +89,50 @@ namespace Avemel.API.Controllers
             UserRoles.Admin + "," +
             UserRoles.Operations + "," +
             UserRoles.Driver)]
+
+        // PUT: api/trucks/5/archive
+        [HttpPut("{id:int:min(1)}/archive")]
+        [Authorize(Roles = UserRoles.Admin)]
+        public async Task<IActionResult> Archive(
+    int id,
+    CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _truckService.ArchiveAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new { message = exception.Message });
+            }
+            catch (InvalidOperationException exception)
+                when (exception.Message is
+                    "Release the truck's active assignment before archiving."
+                    or "Truck availability changed. Refresh and try again.")
+            {
+                return Conflict(new { message = exception.Message });
+            }
+        }
+
+        // PUT: api/trucks/5/restore
+        [HttpPut("{id:int:min(1)}/restore")]
+        [Authorize(Roles = UserRoles.Admin)]
+        public async Task<IActionResult> Restore(
+            int id,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _truckService.RestoreAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new { message = exception.Message });
+            }
+        }
+
         public async Task<ActionResult<List<TruckResponseDto>>> GetAvailable(
             CancellationToken cancellationToken)
         {
