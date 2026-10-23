@@ -108,6 +108,7 @@ namespace Avemel.API.Services
             return user == null ? null : ToResponse(user);
         }
 
+
         public async Task ResetPasswordAsync(
     int userId,
     ResetUserPasswordRequestDto request,
@@ -136,6 +137,41 @@ namespace Avemel.API.Services
             user.PasswordHash = _passwordHasher.HashPassword(
                 user,
                 request.NewPassword);
+
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task ArchiveDriverAsync(
+    int id,
+    CancellationToken cancellationToken = default)
+        {
+            var user = await _db.Users.SingleOrDefaultAsync(
+                u => u.Id == id,
+                cancellationToken);
+
+            if (user is null || user.Role != "Driver")
+            {
+                throw new KeyNotFoundException("Driver not found.");
+            }
+
+            if (!user.IsActive)
+            {
+                return;
+            }
+
+            var hasActiveAssignment = await _db.TruckAssignments.AnyAsync(
+                assignment =>
+                    assignment.DriverId == id &&
+                    assignment.ReleasedAt == null,
+                cancellationToken);
+
+            if (hasActiveAssignment)
+            {
+                throw new InvalidOperationException(
+                    "Release the driver's active truck assignment before archiving.");
+            }
+
+            user.IsActive = false;
 
             await _db.SaveChangesAsync(cancellationToken);
         }

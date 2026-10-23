@@ -12,7 +12,15 @@ const userService = {
         password,
         role: "Driver"
       }
+
     }),
+
+
+            archiveDriver: (userId) =>
+            apiRequest(`/api/users/${userId}/archive`, {
+              method: "PUT"
+               }),
+
 
   resetPassword: (userId, newPassword) =>
     apiRequest(`/api/users/${userId}/password`, {

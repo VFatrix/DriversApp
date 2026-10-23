@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import userService from "../Services/userService";
 
 export default function DriversAdmin() {
-  const [drivers, setDrivers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [resetPasswords, setResetPasswords] = useState({});
+const [drivers, setDrivers] = useState([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
+const [resetPasswords, setResetPasswords] = useState({});
 const [resettingId, setResettingId] = useState(null);
-  const [fullName, setFullName] = useState("");
+const [fullName, setFullName] = useState("");
 const [username, setUsername] = useState("");
 const [password, setPassword] = useState("");
 const [creating, setCreating] = useState(false);
+const [archivingId, setArchivingId] = useState(null);
 const [message, setMessage] = useState("");
 
   const loadDrivers = async () => {
@@ -92,6 +93,39 @@ const resetPassword = async (event, driver) => {
     setError(err.message || "Unable to reset the password.");
   } finally {
     setResettingId(null);
+  }
+};
+
+
+const archiveDriver = async (driver) => {
+  if (archivingId !== null) return;
+
+  const confirmed = window.confirm(
+    `Archive ${driver.fullName} (${driver.username})? They will no longer be able to log in.`
+  );
+
+  if (!confirmed) return;
+
+  setArchivingId(driver.id);
+  setError("");
+  setMessage("");
+
+  try {
+    await userService.archiveDriver(driver.id);
+
+    setDrivers((current) =>
+      current.map((item) =>
+        item.id === driver.id
+          ? { ...item, isActive: false }
+          : item
+      )
+    );
+
+    setMessage(`Driver ${driver.username} archived successfully.`);
+  } catch (err) {
+    setError(err.message || "Unable to archive the driver.");
+  } finally {
+    setArchivingId(null);
   }
 };
 
@@ -197,8 +231,19 @@ const resetPassword = async (event, driver) => {
                 Username: {driver.username}
               </p>
               <p className="text-sm">
-                {driver.isActive ? "Active" : "Inactive"}
-              </p>
+  {driver.isActive ? "Active" : "Archived"}
+</p>
+
+{driver.isActive && (
+  <button
+    type="button"
+    onClick={() => archiveDriver(driver)}
+    disabled={archivingId !== null}
+    className="mt-2 bg-red-700 text-white rounded-lg px-4 py-2 disabled:opacity-40"
+  >
+    {archivingId === driver.id ? "Archiving…" : "Archive driver"}
+  </button>
+)}
               <form
   onSubmit={(event) => resetPassword(event, driver)}
   className="mt-3"

@@ -19,5 +19,8 @@ namespace Avemel.API.Services
 
         Task<List<UserResponseDto>> GetAllAsync(
           CancellationToken cancellationToken = default);
+        Task ArchiveDriverAsync(
+          int id,
+         CancellationToken cancellationToken = default);
     }
 }

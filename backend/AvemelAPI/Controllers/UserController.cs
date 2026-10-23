@@ -90,6 +90,38 @@ namespace Avemel.API.Controllers
             return Ok(users);
         }
 
+        // PUT: api/users/5/archive
+        [HttpPut("{id:int:min(1)}/archive")]
+        public async Task<IActionResult> ArchiveDriver(
+            int id,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _userService.ArchiveDriverAsync(
+                    id,
+                    cancellationToken);
+
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new
+                {
+                    message = exception.Message
+                });
+            }
+            catch (InvalidOperationException exception)
+                when (exception.Message ==
+                    "Release the driver's active truck assignment before archiving.")
+            {
+                return Conflict(new
+                {
+                    message = exception.Message
+                });
+            }
+        }
+
         // GET: api/users/5
         [HttpGet("{id:int:min(1)}")]
         public async Task<ActionResult<UserResponseDto>> GetById(
