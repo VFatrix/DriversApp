@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
+import TrailersAdmin from "./Components/TrailersAdmin";
 import authService from "/services/authService";
 import WorkshopReplacementList from "./components/WorkshopReplacementList";
 import WorkshopFaultList from "./components/WorkshopFaultList";
@@ -680,13 +681,50 @@ function LegacyDriversAdmin({ fleet, saveFleet }) {
     </div>
   );
 }
-
 function BackendAdmin({ fleet, saveFleet, data }) {
   const [tab, setTab] = useState("drivers");
+
+  const tabs = [
+    { id: "drivers", label: "Drivers" },
+    { id: "trucks", label: "Trucks" },
+    { id: "trailers", label: "Trailers" }
+  ];
+
   return (
-    <div>
-      <Tabs value={tab} onChange={setTab} tabs={[{ k: "drivers", label: "Drivers" }, { k: "fleet", label: "Fleet list" }]} />
-      {tab === "drivers" ? <DriversAdmin /> : <FleetManage {...{ fleet, saveFleet, data }} />}
+    <div className="space-y-4">
+      <div
+        role="group"
+        aria-label="Admin sections"
+        className="flex flex-wrap gap-2 border-b pb-3"
+      >
+        {tabs.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            aria-pressed={tab === item.id}
+            className={`rounded-lg px-5 py-2 font-semibold ${
+              tab === item.id
+                ? "bg-red-700 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div hidden={tab !== "drivers"}>
+        <DriversAdmin />
+      </div>
+
+      <div hidden={tab !== "trucks"}>
+        <TrucksAdmin />
+      </div>
+
+      <div hidden={tab !== "trailers"}>
+        <TrailersAdmin />
+      </div>
     </div>
   );
 }

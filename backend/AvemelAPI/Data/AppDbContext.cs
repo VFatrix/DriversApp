@@ -34,9 +34,19 @@ namespace Avemel.API.Data
         public DbSet<TruckReplacementRequest> TruckReplacementRequests =>
            Set<TruckReplacementRequest>();
 
+        public DbSet<Trailer> Trailers => Set<Trailer>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Trailer>(entity =>
+            {
+                entity.HasKey(trailer => trailer.Id);
+
+                entity.HasIndex(trailer => trailer.RegistrationNumber)
+                    .IsUnique();
+            });
 
             modelBuilder.Entity<AppUser>(entity =>
             {

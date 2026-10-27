@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import truckService from "../Services/truckService";
+import truckService from "../services/truckService";
 
 export default function TrucksAdmin() {
   const [trucks, setTrucks] = useState([]);

@@ -178,7 +178,7 @@ const visibleDrivers = drivers.filter((driver) => {
         onChange={(event) => setFullName(event.target.value)}
         required
         maxLength={150}
-        className="block w-full border rounded-lg p-2 mt-1"
+        className="block w-full border rounded-lg p-2 mt-1 bg-white text-gray-900"
       />
     </label>
 
@@ -192,7 +192,7 @@ const visibleDrivers = drivers.filter((driver) => {
         pattern="[a-zA-Z0-9._\-]+"
         title="Use letters, numbers, dots, underscores or hyphens."
         autoComplete="off"
-        className="block w-full border rounded-lg p-2 mt-1"
+        className="block w-full border rounded-lg p-2 mt-1 bg-white text-gray-900"
       />
     </label>
 
@@ -206,7 +206,7 @@ const visibleDrivers = drivers.filter((driver) => {
         minLength={12}
         maxLength={256}
         autoComplete="new-password"
-        className="block w-full border rounded-lg p-2 mt-1"
+        className="block w-full border rounded-lg p-2 mt-1 bg-white text-gray-900"
       />
     </label>
 
@@ -222,26 +222,25 @@ const visibleDrivers = drivers.filter((driver) => {
         !username.trim() ||
         !password.trim()
       }
-      className="bg-red-700 text-white rounded-lg px-4 py-2 disabled:opacity-40"
+      className="bg-red-700 text-white rounded-lg px-4 py-2 disabled:opacity-70"
     >
       {creating ? "Saving…" : "Add driver"}
+    </button>
+  </fieldset>
+</form>
 
-
-      <label className="block text-sm mb-3">
+      <label className="block text-sm mb-3 text-gray-900">
   Show drivers
   <select
     value={driverFilter}
     onChange={(event) => setDriverFilter(event.target.value)}
-    className="block w-full border rounded-lg p-2 mt-1"
+    className="block w-full border rounded-lg p-2 mt-1 bg-white text-gray-900"
   >
     <option value="active">Active drivers</option>
     <option value="archived">Archived drivers</option>
     <option value="all">All drivers</option>
   </select>
 </label>
-    </button>
-  </fieldset>
-</form>
 
 {message && (
   <p role="status" className="text-green-700 mb-3">
@@ -324,7 +323,7 @@ const visibleDrivers = drivers.filter((driver) => {
       maxLength={256}
       autoComplete="new-password"
       disabled={resettingId !== null}
-      className="block w-full border rounded-lg p-2 mt-1"
+      className="block w-full border rounded-lg p-2 mt-1 bg-white text-gray-900"
     />
   </label>
 

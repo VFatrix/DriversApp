@@ -97,6 +97,7 @@ builder.Services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITruckService, TruckService>();
+builder.Services.AddScoped<ITrailerService, TrailerService>();
 builder.Services.AddScoped<ITruckAssignmentService, TruckAssignmentService>();
 builder.Services.AddScoped<ITruckInspectionService, TruckInspectionService>();
 builder.Services.AddScoped<IInspectionPhotoStorage, LocalInspectionPhotoStorage>();
