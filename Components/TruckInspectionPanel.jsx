@@ -12,7 +12,8 @@ const PHOTO_ANGLES = [
 
 export default function TruckInspectionPanel({
   assignmentId,
-  onSubmitted
+  onSubmitted,
+  onTrailerLockChange
 }) {
   // Inspection contains the last confirmed saved values.
   const [inspection, setInspection] = useState(null);
@@ -28,6 +29,24 @@ export default function TruckInspectionPanel({
 
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+
+  useEffect(() => {
+  onTrailerLockChange?.({
+    assignmentId,
+    locked:
+      loading ||
+      starting ||
+      Boolean(inspection) ||
+      Boolean(error)
+  });
+}, [
+  assignmentId,
+  loading,
+  starting,
+  inspection,
+  error,
+  onTrailerLockChange
+]);
 
   const applyInspection = (data) => {
     setInspection(data);

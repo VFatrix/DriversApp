@@ -3,6 +3,8 @@ import { apiRequest } from "./api";
 const trailerService = {
   getAll: () => apiRequest("/api/trailers"),
 
+  getActive: () => apiRequest("/api/trailers/active"),
+
   getById: (trailerId) =>
     apiRequest(`/api/trailers/${trailerId}`),
 
@@ -22,6 +24,20 @@ const trailerService = {
   restoreTrailer: (trailerId) =>
     apiRequest(`/api/trailers/${trailerId}/restore`, {
       method: "PUT"
+    }),
+
+  getAssigned: (assignmentId) =>
+    apiRequest(`/api/truck-assignments/${assignmentId}/trailers`),
+
+  getAvailableForAssignment: (assignmentId) =>
+    apiRequest(
+      `/api/truck-assignments/${assignmentId}/trailers/available`
+    ),
+
+  saveAssignments: (assignmentId, trailerIds) =>
+    apiRequest(`/api/truck-assignments/${assignmentId}/trailers`, {
+      method: "PUT",
+      body: { trailerIds }
     })
 };
 

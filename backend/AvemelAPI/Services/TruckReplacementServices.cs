@@ -290,6 +290,22 @@ namespace Avemel.API.Services
                 original.ReleaseReason =
                     $"Approved truck replacement request #{replacement.Id}.";
 
+                // Release trailers linked to the original truck assignment.
+                // Keep the records for assignment history.
+                var assignedTrailers = await _db.TrailerAssignments
+                    .Where(x =>
+                        x.TruckAssignmentId == original.Id &&
+                        x.ReleasedAt == null)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var trailerAssignment in assignedTrailers)
+                {
+                    trailerAssignment.ReleasedAt = switchedAt;
+                    trailerAssignment.ReleasedByUserId = driverId;
+                    trailerAssignment.ReleaseReason =
+                        $"Truck replaced through approved request #{replacement.Id}.";
+                }
+
                 // Release first so the driver's unique active-assignment
                 // index allows the new assignment.
                 // Both saves remain inside the same transaction.

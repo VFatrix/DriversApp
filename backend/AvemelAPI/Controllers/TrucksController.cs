@@ -82,13 +82,9 @@ namespace Avemel.API.Controllers
             }
 
             return Ok(truck);
-        }
+        } 
 
-        [HttpGet("available")]
-        [Authorize(Roles =
-            UserRoles.Admin + "," +
-            UserRoles.Operations + "," +
-            UserRoles.Driver)]
+      
 
         // PUT: api/trucks/5/archive
         [HttpPut("{id:int:min(1)}/archive")]
@@ -132,7 +128,11 @@ namespace Avemel.API.Controllers
                 return NotFound(new { message = exception.Message });
             }
         }
-
+        [HttpGet("available")]
+        [Authorize(Roles =
+          UserRoles.Admin + "," +
+          UserRoles.Operations + "," +
+          UserRoles.Driver)]
         public async Task<ActionResult<List<TruckResponseDto>>> GetAvailable(
             CancellationToken cancellationToken)
         {

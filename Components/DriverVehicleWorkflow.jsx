@@ -3,6 +3,7 @@ import truckService from "../services/truckService";
 import TruckInspectionPanel from "./TruckInspectionPanel";
 import DriverTruckFaults from "./DriverTruckFaults";
 import TruckReplacementPanel from "./TruckReplacementPanel";
+import DriverTrailerSelection from "./DriverTrailerSelection";
 import TruckSelection from "./TruckSelection";
 
 export default function DriverVehicleWorkflow() {
@@ -11,6 +12,11 @@ export default function DriverVehicleWorkflow() {
   const [error, setError] = useState("");
   const [faultRefreshKey, setFaultRefreshKey] = useState(0);
 
+
+  const [trailerLock, setTrailerLock] = useState({
+  assignmentId: null,
+  locked: true
+});
   const loadAssignment = async () => {
     setLoading(true);
     setError("");
@@ -66,10 +72,22 @@ export default function DriverVehicleWorkflow() {
         This truck is assigned to you. A pre-trip inspection is required.
       </p>
 
-     <TruckInspectionPanel
+<DriverTrailerSelection
+  key={`trailers-${assignment.id}`}
+  assignmentId={assignment.id}
+  readOnly={
+    trailerLock.assignmentId !== assignment.id ||
+    trailerLock.locked
+  }
+/>
+
+<TruckInspectionPanel
   key={assignment.id}
   assignmentId={assignment.id}
-  onSubmitted={() => setFaultRefreshKey((current) => current + 1)}
+  onTrailerLockChange={setTrailerLock}
+  onSubmitted={() =>
+    setFaultRefreshKey((current) => current + 1)
+  }
 />
 
 <DriverTruckFaults

@@ -90,6 +90,56 @@ namespace AvemelAPI.Migrations
                     b.ToTable("Trailers");
                 });
 
+            modelBuilder.Entity("Avemel.API.Models.TrailerAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReleaseReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReleasedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TrailerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TruckAssignmentId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReleasedByUserId");
+
+                    b.HasIndex("TrailerId")
+                        .IsUnique()
+                        .HasFilter("\"ReleasedAt\" IS NULL");
+
+                    b.HasIndex("TruckAssignmentId", "Position")
+                        .IsUnique()
+                        .HasFilter("\"ReleasedAt\" IS NULL");
+
+                    b.ToTable("TrailerAssignments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TrailerAssignments_Position", "\"Position\" IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_TrailerAssignments_ReleaseDate", "\"ReleasedAt\" IS NULL OR \"ReleasedAt\" >= \"AssignedAt\"");
+                        });
+                });
+
             modelBuilder.Entity("Avemel.API.Models.Truck", b =>
                 {
                     b.Property<int>("Id")
@@ -391,6 +441,32 @@ namespace AvemelAPI.Migrations
                         .HasFilter("\"Status\" IN ('Pending', 'Approved')");
 
                     b.ToTable("TruckReplacementRequests");
+                });
+
+            modelBuilder.Entity("Avemel.API.Models.TrailerAssignment", b =>
+                {
+                    b.HasOne("Avemel.API.Models.AppUser", "ReleasedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReleasedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Avemel.API.Models.Trailer", "Trailer")
+                        .WithMany()
+                        .HasForeignKey("TrailerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Avemel.API.Models.TruckAssignment", "TruckAssignment")
+                        .WithMany()
+                        .HasForeignKey("TruckAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ReleasedByUser");
+
+                    b.Navigation("Trailer");
+
+                    b.Navigation("TruckAssignment");
                 });
 
             modelBuilder.Entity("Avemel.API.Models.TruckAssignment", b =>

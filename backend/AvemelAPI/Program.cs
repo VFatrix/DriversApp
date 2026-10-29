@@ -115,6 +115,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<
+    ITrailerAssignmentService,
+    TrailerAssignmentService>();
+
 var app = builder.Build();
 
 // Create the first Admin account during local development.

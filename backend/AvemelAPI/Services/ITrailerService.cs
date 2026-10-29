@@ -15,6 +15,9 @@ namespace Avemel.API.Services
         Task<List<TrailerResponseDto>> GetAllAsync(
             CancellationToken cancellationToken = default);
 
+        Task<List<TrailerResponseDto>> GetActiveAsync(
+    CancellationToken cancellationToken = default);
+
         Task ArchiveAsync(
             int id,
             CancellationToken cancellationToken = default);

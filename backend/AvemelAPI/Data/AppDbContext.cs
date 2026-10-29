@@ -36,9 +36,57 @@ namespace Avemel.API.Data
 
         public DbSet<Trailer> Trailers => Set<Trailer>();
 
+        public DbSet<TrailerAssignment> TrailerAssignments =>
+           Set<TrailerAssignment>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<TrailerAssignment>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+
+                entity.ToTable("TrailerAssignments", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_TrailerAssignments_Position",
+                        "\"Position\" IN (1, 2)");
+
+                    table.HasCheckConstraint(
+                        "CK_TrailerAssignments_ReleaseDate",
+                        "\"ReleasedAt\" IS NULL OR \"ReleasedAt\" >= \"AssignedAt\"");
+                });
+
+                // A trailer can have only one active assignment.
+                entity.HasIndex(x => x.TrailerId)
+                    .IsUnique()
+                    .HasFilter("\"ReleasedAt\" IS NULL");
+
+                // Each truck assignment has only two active trailer positions.
+                entity.HasIndex(x => new
+                {
+                    x.TruckAssignmentId,
+                    x.Position
+                })
+                    .IsUnique()
+                    .HasFilter("\"ReleasedAt\" IS NULL");
+
+                entity.HasOne(x => x.TruckAssignment)
+                    .WithMany()
+                    .HasForeignKey(x => x.TruckAssignmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Trailer)
+                    .WithMany()
+                    .HasForeignKey(x => x.TrailerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.ReleasedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ReleasedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<Trailer>(entity =>
             {
