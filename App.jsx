@@ -7,6 +7,7 @@ import WorkshopFaultList from "./components/WorkshopFaultList";
 import DriversAdmin from "./Components/DriversAdmin";
 import DriverTruckFaults from "/components/DriverTruckFaults";
 import DriverVehicleWorkflow from "./Components/DriverVehicleWorkflow";
+import AdminInspectionApprovals from "./Components/AdminInspectionApprovals";
 import TrucksAdmin from "./Components/TrucksAdmin";
 
 const RED = "#EA2227";
@@ -680,14 +681,14 @@ function LegacyDriversAdmin({ fleet, saveFleet }) {
       </div>
     </div>
   );
-}
-function BackendAdmin({ fleet, saveFleet, data }) {
+}function BackendAdmin({ fleet, saveFleet, data }) {
   const [tab, setTab] = useState("drivers");
 
   const tabs = [
     { id: "drivers", label: "Drivers" },
     { id: "trucks", label: "Trucks" },
-    { id: "trailers", label: "Trailers" }
+    { id: "trailers", label: "Trailers" },
+    { id: "inspections", label: "Inspection approvals" }
   ];
 
   return (
@@ -725,6 +726,10 @@ function BackendAdmin({ fleet, saveFleet, data }) {
       <div hidden={tab !== "trailers"}>
         <TrailersAdmin />
       </div>
+
+      {tab === "inspections" && (
+        <AdminInspectionApprovals />
+      )}
     </div>
   );
 }

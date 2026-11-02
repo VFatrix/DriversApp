@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import inspectionService from "../services/inspectionService";
 import InspectionAnswer from "./InspectionAnswer";
 import InspectionPhoto from "./InspectionPhoto";
@@ -15,10 +15,7 @@ export default function TruckInspectionPanel({
   onSubmitted,
   onTrailerLockChange
 }) {
-  // Inspection contains the last confirmed saved values.
   const [inspection, setInspection] = useState(null);
-
-  // Answers and comments contain the driver's current selections.
   const [answers, setAnswers] = useState([]);
   const [comments, setComments] = useState("");
 
@@ -26,45 +23,50 @@ export default function TruckInspectionPanel({
   const [starting, setStarting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [error, setError] = useState("");
+  const [statusError, setStatusError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-  onTrailerLockChange?.({
-    assignmentId,
-    locked:
-      loading ||
-      starting ||
-      Boolean(inspection) ||
-      Boolean(error)
-  });
-}, [
-  assignmentId,
-  loading,
-  starting,
-  inspection,
-  error,
-  onTrailerLockChange
-]);
+  // Invalidates status requests when starting a new inspection.
+  const statusGeneration = useRef(0);
 
-  const applyInspection = (data) => {
+  const applyInspection = useCallback((data) => {
     setInspection(data);
     setAnswers(data?.answers ?? []);
     setComments(data?.additionalComments ?? "");
     setSaveMessage("");
-  };
+  }, []);
+
+  useEffect(() => {
+    onTrailerLockChange?.({
+      assignmentId,
+      locked:
+        loading ||
+        starting ||
+        Boolean(inspection) ||
+        Boolean(error)
+    });
+  }, [
+    assignmentId,
+    loading,
+    starting,
+    inspection,
+    error,
+    onTrailerLockChange
+  ]);
 
   useEffect(() => {
     let cancelled = false;
+    statusGeneration.current += 1;
 
     const load = async () => {
       setLoading(true);
       setError("");
-      setInspection(null);
-      setAnswers([]);
-      setComments("");
-      setSaveMessage("");
+      setStatusError("");
+      applyInspection(null);
 
       try {
         const latest = await inspectionService.getMyLatest();
@@ -83,9 +85,7 @@ export default function TruckInspectionPanel({
           setError(err.message || "Unable to load the inspection.");
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -93,14 +93,106 @@ export default function TruckInspectionPanel({
 
     return () => {
       cancelled = true;
+      statusGeneration.current += 1;
     };
-  }, [assignmentId]);
+  }, [assignmentId, applyInspection]);
+
+  // Poll only submitted inspections, preserving unsaved draft answers.
+  useEffect(() => {
+    if (
+      loading ||
+      starting ||
+      inspection?.status !== "Submitted"
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    let timer;
+    const generation = statusGeneration.current;
+
+    const refresh = async () => {
+      setRefreshing(true);
+
+      try {
+        const latest = await inspectionService.getMyLatest();
+
+        if (
+          cancelled ||
+          generation !== statusGeneration.current
+        ) {
+          return;
+        }
+
+        if (!latest || latest.assignmentId !== assignmentId) {
+          throw new Error(
+            "Your truck assignment changed. Reload the page."
+          );
+        }
+
+        applyInspection(latest);
+        setStatusError("");
+      } catch (err) {
+        if (
+          !cancelled &&
+          generation === statusGeneration.current
+        ) {
+          setStatusError(
+            err.message || "Unable to refresh approval status."
+          );
+        }
+      } finally {
+        if (
+          !cancelled &&
+          generation === statusGeneration.current
+        ) {
+          setRefreshing(false);
+          timer = window.setTimeout(refresh, 10000);
+        }
+      }
+    };
+
+    refresh();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    assignmentId,
+    inspection?.id,
+    inspection?.status,
+    loading,
+    starting,
+    refreshKey,
+    applyInspection
+  ]);
+
+  const busy = saving || submitting || starting;
+  const isDraft = inspection?.status === "Draft";
+  const isSubmitted = inspection?.status === "Submitted";
+  const isApproved = isSubmitted && Boolean(inspection?.approvedAt);
+  const readOnly = busy || !isDraft;
 
   const startInspection = async () => {
-    if (starting) return;
+    if (busy) return;
 
+    if (
+      inspection &&
+      !window.confirm(
+        "Start a new inspection for this truck? You will need new " +
+        "answers, four new photos and a new admin approval. " +
+        "Previous inspection and Workshop records remain saved."
+      )
+    ) {
+      return;
+    }
+
+    statusGeneration.current += 1;
     setStarting(true);
+    setRefreshing(false);
     setError("");
+    setStatusError("");
 
     try {
       const created = await inspectionService.create(assignmentId);
@@ -110,12 +202,16 @@ export default function TruckInspectionPanel({
         try {
           const latest = await inspectionService.getMyLatest();
 
-          if (latest && latest.assignmentId === assignmentId) {
+          if (
+            latest &&
+            latest.assignmentId === assignmentId &&
+            latest.status === "Draft"
+          ) {
             applyInspection(latest);
             return;
           }
         } catch {
-          // Display the original creation error below.
+          // Preserve the original creation error.
         }
       }
 
@@ -124,9 +220,6 @@ export default function TruckInspectionPanel({
       setStarting(false);
     }
   };
-
-  const busy = saving || submitting;
-  const readOnly = busy || inspection?.status !== "Draft";
 
   const answerChanged = (answerId, hasDefect) => {
     if (readOnly) return;
@@ -138,12 +231,11 @@ export default function TruckInspectionPanel({
           : answer
       )
     );
-
     setSaveMessage("");
   };
 
-  const changedAnswers = answers.filter((answer) => {
-    const saved = inspection?.answers.find(
+  const hasUnsavedAnswers = answers.some((answer) => {
+    const saved = inspection?.answers?.find(
       (item) => item.id === answer.id
     );
 
@@ -155,66 +247,65 @@ export default function TruckInspectionPanel({
     (inspection?.additionalComments?.trim() || null);
 
   const hasUnsavedChanges =
-    changedAnswers.length > 0 || hasUnsavedComments;
+    hasUnsavedAnswers || hasUnsavedComments;
+
+  const answeredCount = answers.filter(
+    (answer) => typeof answer.hasDefect === "boolean"
+  ).length;
 
   const allAnswered =
-    answers.length === 21 &&
-    answers.every(
-      (answer) =>
-        answer.hasDefect === true ||
-        answer.hasDefect === false
-    );
+    answers.length === 21 && answeredCount === 21;
 
-  const allPhotosUploaded = PHOTO_ANGLES.every(([angle]) =>
-    inspection?.photos?.some((photo) => photo.angle === angle)
+  const missingPhotos = PHOTO_ANGLES.filter(
+    ([angle]) =>
+      !inspection?.photos?.some((photo) => photo.angle === angle)
   );
 
   const canSubmit =
-    inspection?.status === "Draft" &&
+    isDraft &&
     allAnswered &&
-    allPhotosUploaded &&
+    missingPhotos.length === 0 &&
     !hasUnsavedChanges &&
     !busy;
 
   const saveAnswers = async () => {
-  if (
-    !inspection ||
-    inspection.status !== "Draft" ||
-    busy ||
-    !hasUnsavedChanges
-  ) {
-    return;
-  }
+    if (!isDraft || busy || !hasUnsavedChanges) return;
 
-  if (!allAnswered) {
-    setError("Answer all 21 questions before saving.");
+    if (!allAnswered) {
+      setError("Answer all 21 questions before saving.");
+      setSaveMessage("");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
     setSaveMessage("");
-    return;
-  }
 
-  setSaving(true);
-  setError("");
-  setSaveMessage("");
+    try {
+      const updated = await inspectionService.save(
+        inspection.id,
+        answers,
+        comments
+      );
 
-  try {
-    const updated = await inspectionService.save(
-      inspection.id,
-      answers,
-      comments
-    );
+      // Preserve photos that may have finished uploading during saving.
+      setInspection((current) => ({
+        ...updated,
+        photos: current?.photos ?? updated.photos ?? []
+      }));
+      setAnswers(updated.answers ?? []);
+      setComments(updated.additionalComments ?? "");
+      setSaveMessage("Your answers and comments are saved.");
+    } catch (err) {
+      setError(
+        err.message ||
+          "Unable to save. Your selections remain here; please try again."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    applyInspection(updated);
-
-    setSaveMessage("Your answers and comments are saved.");
-  } catch (err) {
-    setError(
-      err.message ||
-      "Unable to save. Your selections remain here; please try again."
-    );
-  } finally {
-    setSaving(false);
-  }
-};
   const photoUploaded = (savedPhoto) => {
     setInspection((current) => {
       if (!current) return current;
@@ -241,6 +332,7 @@ export default function TruckInspectionPanel({
     try {
       const submitted = await inspectionService.submit(inspection.id);
       applyInspection(submitted);
+      setStatusError("");
       onSubmitted?.();
     } catch (err) {
       setError(err.message || "Unable to submit the inspection.");
@@ -256,10 +348,6 @@ export default function TruckInspectionPanel({
       </p>
     );
   }
-
-  const answeredCount = answers.filter(
-    (answer) => typeof answer.hasDefect === "boolean"
-  ).length;
 
   return (
     <section className="mt-4">
@@ -277,112 +365,156 @@ export default function TruckInspectionPanel({
         <button
           type="button"
           onClick={startInspection}
-          disabled={starting}
+          disabled={busy}
           className="bg-red-700 text-white rounded-xl px-4 py-3 font-bold disabled:opacity-40"
         >
           {starting ? "Starting…" : "Start inspection"}
         </button>
       ) : (
         <>
-          <p className="text-sm text-gray-600 mb-2">
-            {answeredCount} of {answers.length} questions answered.
-          </p>
-
-          <p className="text-sm font-semibold mb-4">
-            Yes = a defect was found. No = no defect was found.
-          </p>
-
- {/*//////////////////this is a button just for testing\\\\\\\\\\\\\\\\\\\\ */}
-
-{inspection.status === "Draft" && (
-  <button
-    type="button"
-    onClick={() => {
-      setAnswers((current) =>
-        current.map((answer) => ({
-          ...answer,
-          hasDefect: false
-        }))
-      );
-      setSaveMessage("");
-    }}
-    disabled={readOnly}
-    className="bg-gray-700 text-white rounded-lg px-4 py-2 mb-4 disabled:opacity-40"
-  >
-    Testing: select all No
-  </button>
-)}
-
-
-          {answers.map((answer) => (
-            <InspectionAnswer
-              key={`${inspection.id}-${answer.id}`}
-              inspectionId={inspection.id}
-              answer={answer}
-              onChange={answerChanged}
-              readOnly={readOnly}
-            />
-          ))}
-
-          <div className="border rounded-xl p-4 mt-4">
-            <label
-              htmlFor={`inspection-comments-${inspection.id}`}
-              className="block font-semibold mb-2"
+          {isSubmitted && (
+            <div
+              role="status"
+              aria-live="polite"
+              className={`border rounded-xl p-4 mb-4 ${
+                statusError
+                  ? "bg-gray-100 border-gray-300"
+                  : isApproved
+                  ? "bg-green-50 border-green-300"
+                  : "bg-amber-50 border-amber-300"
+              }`}
             >
-              Other issues / comments (optional)
-            </label>
+              <p className="font-bold">
+                {statusError
+                  ? "Approval status could not be verified"
+                  : isApproved
+                  ? "Inspection approved — you may proceed to loading."
+                  : "Awaiting admin approval"}
+              </p>
 
-            <p className="text-sm text-gray-600 mb-3">
-              Describe anything you found that was not covered
-              by the questions above.
+              <p className="text-sm mt-2">
+                {isApproved && !statusError
+                  ? "Trip departure still requires Operations authorization after loading."
+                  : "Inspection editing is locked. Workshop must clear any outstanding faults before Admin can approve loading."}
+              </p>
+
+              {statusError && (
+                <p role="alert" className="text-sm text-red-700 mt-2">
+                  {statusError}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setRefreshKey((current) => current + 1)}
+                disabled={refreshing || busy}
+                className="text-sm underline mt-3 disabled:opacity-40"
+              >
+                {refreshing ? "Checking status…" : "Refresh approval status"}
+              </button>
+
+              <p className="text-xs text-gray-600 mt-2">
+                Status checks automatically every 10 seconds.
+              </p>
+            </div>
+          )}
+
+          <div className={!isDraft ? "opacity-60 bg-gray-50 rounded-xl p-3" : ""}>
+            <p className="text-sm text-gray-600 mb-2">
+              {answeredCount} of {answers.length} questions answered.
             </p>
 
-            <textarea
-              id={`inspection-comments-${inspection.id}`}
-              value={comments}
-              onChange={(event) => {
-                setComments(event.target.value);
-                setSaveMessage("");
-              }}
-              maxLength={1000}
-              rows={4}
-              disabled={readOnly}
-              placeholder="Enter any additional issues here…"
-              className="w-full border rounded-lg p-3 disabled:bg-gray-100"
-            />
-
-            <p className="text-xs text-gray-500 mt-1">
-              {comments.length} / 1,000 characters
+            <p className="text-sm font-semibold mb-4">
+              Yes = a defect was found. No = no defect was found.
             </p>
-          </div>
 
-      
+            {isDraft && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAnswers((current) =>
+                    current.map((answer) => ({
+                      ...answer,
+                      hasDefect: false
+                    }))
+                  );
+                  setSaveMessage("");
+                }}
+                disabled={readOnly}
+                className="bg-gray-700 text-white rounded-lg px-4 py-2 mb-4 disabled:opacity-40"
+              >
+                Testing: select all No
+              </button>
+            )}
 
-          <h3 className="font-bold text-lg mt-5 mb-2">
-            Required truck photos
-          </h3>
-
-          <p className="text-sm text-gray-600 mb-3">
-            Upload all four photos before submitting the inspection.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {PHOTO_ANGLES.map(([angle, label]) => (
-              <InspectionPhoto
-                key={`${inspection.id}-${angle}`}
+            {answers.map((answer) => (
+              <InspectionAnswer
+                key={`${inspection.id}-${answer.id}`}
                 inspectionId={inspection.id}
-                angle={angle}
-                label={label}
-                photo={inspection.photos?.find(
-                  (photo) => photo.angle === angle
-                )}
-                onUploaded={photoUploaded}
+                answer={answer}
+                onChange={answerChanged}
                 readOnly={readOnly}
               />
             ))}
+
+            <div className="border rounded-xl p-4 mt-4">
+              <label
+                htmlFor={`inspection-comments-${inspection.id}`}
+                className="block font-semibold mb-2"
+              >
+                Other issues / comments (optional)
+              </label>
+
+              <p className="text-sm text-gray-600 mb-3">
+                Describe anything you found that was not covered by
+                the questions above.
+              </p>
+
+              <textarea
+                id={`inspection-comments-${inspection.id}`}
+                value={comments}
+                onChange={(event) => {
+                  setComments(event.target.value);
+                  setSaveMessage("");
+                }}
+                maxLength={1000}
+                rows={4}
+                disabled={readOnly}
+                placeholder="Enter any additional issues here…"
+                className="w-full border rounded-lg p-3 disabled:bg-gray-100"
+              />
+
+              <p className="text-xs text-gray-500 mt-1">
+                {comments.length} / 1,000 characters
+              </p>
+            </div>
+
+            <h3 className="font-bold text-lg mt-5 mb-2">
+              Required truck photos
+            </h3>
+
+            <p className="text-sm text-gray-600 mb-3">
+              All four photos are required before submission.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {PHOTO_ANGLES.map(([angle, label]) => (
+                <InspectionPhoto
+                  key={`${inspection.id}-${angle}`}
+                  inspectionId={inspection.id}
+                  angle={angle}
+                  label={label}
+                  photo={inspection.photos?.find(
+                    (photo) => photo.angle === angle
+                  )}
+                  onUploaded={photoUploaded}
+                  readOnly={readOnly}
+                />
+              ))}
+            </div>
           </div>
 
-          {inspection.status === "Draft" ? (
+          {isDraft && (
             <div className="mt-4">
               <button
                 type="button"
@@ -393,99 +525,70 @@ export default function TruckInspectionPanel({
                 {submitting ? "Submitting…" : "Submit inspection"}
               </button>
 
-               <div aria-live="polite" className="text-sm mt-3 space-y-1">
-  {!allAnswered && (
-    <p className="text-red-700">
-      Answer all 21 questions. Currently answered: {answeredCount}.
-    </p>
-  )}
+              <div aria-live="polite" className="text-sm mt-3 space-y-1">
+                {!allAnswered && (
+                  <p className="text-red-700">
+                    Answer all 21 questions. Currently answered: {answeredCount}.
+                  </p>
+                )}
 
-  {!allPhotosUploaded && (
-    <p className="text-red-700">
-      Upload the missing photos:{" "}
-      {PHOTO_ANGLES
-        .filter(([angle]) =>
-          !inspection.photos?.some(
-            (photo) => photo.angle === angle
-          )
-        )
-        .map(([, label]) => label)
-        .join(", ")}.
-    </p>
-  )}
+                {missingPhotos.length > 0 && (
+                  <p className="text-red-700">
+                    Upload the missing photos:{" "}
+                    {missingPhotos.map(([, label]) => label).join(", ")}.
+                  </p>
+                )}
 
-  {hasUnsavedChanges && (
-    <p className="text-red-700">
-      Press Save answers below to save your answers and comments.
-    </p>
-  )}
+                {hasUnsavedChanges && (
+                  <p className="text-red-700">
+                    Press Save answers below to save your answers and comments.
+                  </p>
+                )}
 
-  {canSubmit && (
-    <p className="text-green-700">
-      All required answers and photos are saved. Ready to submit.
-    </p>
-  )}
-</div>
+                {canSubmit && (
+                  <p className="text-green-700">
+                    All required answers and photos are saved. Ready to submit
+                    for admin review.
+                  </p>
+                )}
+              </div>
 
-              <p className="text-xs text-gray-500 mt-2">
-                Save all 21 answers and upload all four photos
-                before submitting.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-4 border rounded-xl p-3 bg-gray-50">
-              <p className="font-bold">Inspection submitted</p>
-
-              <p className="text-sm mt-1">
-                Reported defects require Workshop clearance.
-                Trip departure requires Operations authorization.
-              </p>
-
-              <button
-  type="button"
-  onClick={startInspection}
-  disabled={starting || busy}
-  className="mt-3 bg-red-700 text-white rounded-xl px-4 py-3 font-bold disabled:opacity-40"
->
-  {starting ? "Starting…" : "Start new inspection"}
-</button>
-
-<p className="text-xs text-gray-500 mt-2">
-  Re-evaluate your assigned truck with new answers and four new photos.
-  Your previous inspection and Workshop records remain saved.
-</p>
-            </div>
-          )}
-              {inspection.status === "Draft" && (
-            <div className="mt-4">
               <button
                 type="button"
                 onClick={saveAnswers}
                 disabled={busy || !hasUnsavedChanges}
-                className="w-full bg-red-700 text-white rounded-xl py-3 font-bold disabled:opacity-40"
+                className="w-full mt-4 bg-red-700 text-white rounded-xl py-3 font-bold disabled:opacity-40"
               >
                 {saving ? "Saving…" : "Save answers"}
               </button>
 
-              {hasUnsavedChanges && (
-                <p className="text-sm text-red-700 mt-2">
-                  You have unsaved answers or comments.
-                </p>
-              )}
-
               {saveMessage && (
-                <p
-                  role="status"
-                  className="text-sm text-green-700 mt-2"
-                >
+                <p role="status" className="text-sm text-green-700 mt-2">
                   {saveMessage}
                 </p>
               )}
             </div>
           )}
+
+          {isSubmitted && (
+            <div className="mt-4 border rounded-xl p-3">
+              <button
+                type="button"
+                onClick={startInspection}
+                disabled={busy}
+                className="text-sm underline disabled:opacity-40"
+              >
+                {starting ? "Starting…" : "Re-inspect this truck"}
+              </button>
+
+              <p className="text-xs text-gray-500 mt-2">
+                A new inspection requires new answers, four new photos and
+                a new admin approval. Previous records remain saved.
+              </p>
+            </div>
+          )}
         </>
       )}
-
     </section>
   );
 }

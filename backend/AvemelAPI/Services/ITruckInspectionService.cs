@@ -49,5 +49,16 @@ namespace Avemel.API.Services
     int driverId,
     SaveTruckInspectionRequestDto request,
     CancellationToken cancellationToken = default);
+
+
+        Task<TruckInspectionResponseDto> ApproveAsync(
+    int inspectionId,
+    int adminId,
+    CancellationToken cancellationToken = default);
+
+     Task<List<PendingInspectionResponseDto>> GetPendingApprovalAsync(
+       CancellationToken cancellationToken = default);
     }
+
+
 }

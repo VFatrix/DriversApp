@@ -77,6 +77,8 @@ namespace Avemel.API.Data
                     .HasForeignKey(x => x.TruckAssignmentId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+
+
                 entity.HasOne(x => x.Trailer)
                     .WithMany()
                     .HasForeignKey(x => x.TrailerId)
@@ -152,6 +154,11 @@ namespace Avemel.API.Data
                 entity.HasOne(x => x.TruckAssignment)
                     .WithMany()
                     .HasForeignKey(x => x.TruckAssignmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(inspection => inspection.ApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(inspection => inspection.ApprovedByUserId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

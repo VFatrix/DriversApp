@@ -7,6 +7,7 @@ export default function InspectionPhoto({
   label,
   photo,
   onUploaded,
+  onPreviewStateChange,
   readOnly = false
 }) {
   const [file, setFile] = useState(null);
@@ -21,6 +22,7 @@ export default function InspectionPhoto({
 
     setImageUrl("");
     setPreviewError("");
+    onPreviewStateChange?.(angle, false);
 
     if (photo) {
       inspectionService.getPhoto(photo.id)
@@ -46,7 +48,7 @@ export default function InspectionPhoto({
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [photo?.id]);
+ }, [photo?.id, angle, onPreviewStateChange]);
 
   const selectFile = (event) => {
     const selected = event.target.files?.[0];
@@ -101,10 +103,18 @@ export default function InspectionPhoto({
 
           {imageUrl && (
             <img
-              src={imageUrl}
-              alt={`${label} inspection evidence`}
-              className="w-full h-40 object-contain rounded-lg"
-            />
+  src={imageUrl}
+  alt={`${label} inspection evidence`}
+  onLoad={() => {
+    setPreviewError("");
+    onPreviewStateChange?.(angle, true);
+  }}
+  onError={() => {
+    setPreviewError("Unable to display the saved photo.");
+    onPreviewStateChange?.(angle, false);
+  }}
+  className="w-full h-40 object-contain rounded-lg"
+/>
           )}
 
           {previewError && (

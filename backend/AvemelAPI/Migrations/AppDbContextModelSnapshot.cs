@@ -286,6 +286,12 @@ namespace AvemelAPI.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -301,6 +307,8 @@ namespace AvemelAPI.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
 
                     b.HasIndex("TruckAssignmentId")
                         .IsUnique()
@@ -537,11 +545,18 @@ namespace AvemelAPI.Migrations
 
             modelBuilder.Entity("Avemel.API.Models.TruckInspection", b =>
                 {
+                    b.HasOne("Avemel.API.Models.AppUser", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Avemel.API.Models.TruckAssignment", "TruckAssignment")
                         .WithMany()
                         .HasForeignKey("TruckAssignmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
 
                     b.Navigation("TruckAssignment");
                 });

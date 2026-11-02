@@ -19,5 +19,11 @@ namespace Avemel.API.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? SubmittedAt { get; set; }
+
+        public DateTime? ApprovedAt { get; set; }
+
+        public int? ApprovedByUserId { get; set; }
+
+        public AppUser? ApprovedByUser { get; set; }
     }
 }

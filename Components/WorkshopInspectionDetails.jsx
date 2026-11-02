@@ -1,11 +1,24 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import workshopService from "../services/workshopService";
 import InspectionPhoto from "./InspectionPhoto";
 
-export default function WorkshopInspectionDetails({ inspectionId }) {
+export default function WorkshopInspectionDetails({
+  inspectionId,
+  onLoadStateChange
+}) {
   const [inspection, setInspection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [loadedPhotos, setLoadedPhotos] = useState({});
+
+const photoPreviewChanged = useCallback((angle, loaded) => {
+  setLoadedPhotos((current) => {
+    if (current[angle] === loaded) return current;
+
+    return { ...current, [angle]: loaded };
+  });
+}, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -14,15 +27,27 @@ export default function WorkshopInspectionDetails({ inspectionId }) {
       setLoading(true);
       setError("");
       setInspection(null);
+      setLoadedPhotos({});
+      onLoadStateChange?.(inspectionId, false);
 
       try {
         const response = await workshopService.getInspection(
           inspectionId
         );
 
-        if (!cancelled) {
-          setInspection(response);
-        }
+       if (!cancelled) {
+  if (
+    !response ||
+    response.id !== inspectionId ||
+    !Array.isArray(response.answers) ||
+    !Array.isArray(response.photos)
+  ) {
+    throw new Error("The inspection response is incomplete.");
+  }
+
+  setInspection(response);
+
+}
       } catch (err) {
         if (!cancelled) {
           setError(err.message || "Unable to load the inspection.");
@@ -39,9 +64,32 @@ export default function WorkshopInspectionDetails({ inspectionId }) {
     return () => {
       cancelled = true;
     };
-  }, [inspectionId]);
+}, [inspectionId, onLoadStateChange]);
+
+
+useEffect(() => {
+  const ready =
+    !loading &&
+    !error &&
+    inspection?.id === inspectionId &&
+    ["front", "left", "right", "rear"].every(
+      (angle) =>
+        inspection.photos.some((photo) => photo.angle === angle) &&
+        loadedPhotos[angle] === true
+    );
+
+  onLoadStateChange?.(inspectionId, ready);
+}, [
+  loading,
+  error,
+  inspection,
+  inspectionId,
+  loadedPhotos,
+  onLoadStateChange
+]);
 
   if (loading) {
+    
     return (
       <p className="text-sm text-gray-500 mt-3">
         Loading inspection…
@@ -111,15 +159,16 @@ export default function WorkshopInspectionDetails({ inspectionId }) {
           ["rear", "Rear"]
         ].map(([angle, label]) => (
           <InspectionPhoto
-            key={angle}
-            inspectionId={inspection.id}
-            angle={angle}
-            label={label}
-            photo={inspection.photos.find(
-              (photo) => photo.angle === angle
-            )}
-            readOnly
-          />
+  key={`${inspection.id}-${angle}`}
+  inspectionId={inspection.id}
+  angle={angle}
+  label={label}
+  photo={inspection.photos.find(
+    (photo) => photo.angle === angle
+  )}
+  onPreviewStateChange={photoPreviewChanged}
+  readOnly
+/>
         ))}
       </div>
     </section>

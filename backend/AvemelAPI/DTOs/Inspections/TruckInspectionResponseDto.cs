@@ -14,6 +14,10 @@
 
         public DateTime? SubmittedAt { get; set; }
 
+        public DateTime? ApprovedAt { get; set; }
+
+        public int? ApprovedByUserId { get; set; }
+
         public List<TruckInspectionAnswerResponseDto> Answers { get; set; }
             = new();
 

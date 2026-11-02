@@ -631,6 +631,182 @@ namespace Avemel.API.Services
             return response;
         }
 
+        public async Task<List<PendingInspectionResponseDto>>
+    GetPendingApprovalAsync(
+        CancellationToken cancellationToken = default)
+        {
+            var pending = await _db.TruckInspections
+                .AsNoTracking()
+                .Where(inspection =>
+                    inspection.Status == "Submitted" &&
+                    inspection.ApprovedAt == null &&
+                    inspection.TruckAssignment.ReleasedAt == null)
+                .Where(inspection =>
+                    !_db.TruckInspections.Any(other =>
+                        other.TruckAssignmentId ==
+                            inspection.TruckAssignmentId &&
+                        (other.CreatedAt > inspection.CreatedAt ||
+                         (other.CreatedAt == inspection.CreatedAt &&
+                          other.Id > inspection.Id))))
+                .OrderBy(inspection => inspection.SubmittedAt)
+                .ThenBy(inspection => inspection.Id)
+                .Select(inspection => new
+                {
+                    inspection.Id,
+                    AssignmentId = inspection.TruckAssignmentId,
+                    inspection.TruckAssignment.TruckId,
+                    RegistrationNumber =
+                        inspection.TruckAssignment.Truck.RegistrationNumber,
+                    DriverName =
+                        inspection.TruckAssignment.Driver.FullName,
+                    inspection.SubmittedAt,
+
+                    TruckIsActive =
+                        inspection.TruckAssignment.Truck.IsActive,
+
+                    DriverIsActive =
+                        inspection.TruckAssignment.Driver.IsActive &&
+                        inspection.TruckAssignment.Driver.Role ==
+                            UserRoles.Driver,
+
+                    UnclearedFaultCount = _db.TruckFaults.Count(fault =>
+                        fault.TruckId ==
+                            inspection.TruckAssignment.TruckId &&
+                        fault.Status != "Cleared")
+                })
+                .ToListAsync(cancellationToken);
+
+            return pending.Select(inspection =>
+                new PendingInspectionResponseDto
+                {
+                    Id = inspection.Id,
+                    AssignmentId = inspection.AssignmentId,
+                    TruckId = inspection.TruckId,
+                    RegistrationNumber = inspection.RegistrationNumber,
+                    DriverName = inspection.DriverName,
+                    SubmittedAt = inspection.SubmittedAt,
+                    UnclearedFaultCount = inspection.UnclearedFaultCount,
+
+                    CanApprove =
+                        inspection.TruckIsActive &&
+                        inspection.DriverIsActive &&
+                        inspection.UnclearedFaultCount == 0
+                })
+                .ToList();
+        }
+
+        public async Task<TruckInspectionResponseDto> ApproveAsync(
+    int inspectionId,
+    int adminId,
+    CancellationToken cancellationToken = default)
+        {
+            await using var transaction =
+                await _db.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable,
+                    cancellationToken);
+
+            try
+            {
+                var validAdmin = await _db.Users.AnyAsync(
+                    user => user.Id == adminId &&
+                            user.IsActive &&
+                            user.Role == UserRoles.Admin,
+                    cancellationToken);
+
+                if (!validAdmin)
+                {
+                    throw new UnauthorizedAccessException(
+                        "An active admin account is required.");
+                }
+
+                var inspection = await _db.TruckInspections
+                    .Include(x => x.TruckAssignment)
+                        .ThenInclude(x => x.Truck)
+                    .Include(x => x.TruckAssignment)
+                        .ThenInclude(x => x.Driver)
+                    .SingleOrDefaultAsync(
+                        x => x.Id == inspectionId,
+                        cancellationToken);
+
+                if (inspection is null)
+                {
+                    throw new KeyNotFoundException(
+                        "Inspection not found.");
+                }
+
+                var assignment = inspection.TruckAssignment;
+
+                if (assignment.ReleasedAt is not null)
+                {
+                    throw new InvalidOperationException(
+                        "This truck assignment has been released.");
+                }
+
+                if (!assignment.Truck.IsActive ||
+                    !assignment.Driver.IsActive ||
+                    assignment.Driver.Role != UserRoles.Driver)
+                {
+                    throw new InvalidOperationException(
+                        "The truck and driver must both be active.");
+                }
+
+                if (inspection.Status != "Submitted")
+                {
+                    throw new InvalidOperationException(
+                        "Only submitted inspections can be approved.");
+                }
+
+                var hasNewerInspection = await _db.TruckInspections.AnyAsync(
+                    x => x.TruckAssignmentId == inspection.TruckAssignmentId &&
+                         (x.CreatedAt > inspection.CreatedAt ||
+                          (x.CreatedAt == inspection.CreatedAt &&
+                           x.Id > inspection.Id)),
+                    cancellationToken);
+
+                if (hasNewerInspection)
+                {
+                    throw new InvalidOperationException(
+                        "A newer inspection exists. Review the latest inspection.");
+                }
+
+                if (inspection.ApprovedAt is not null)
+                {
+                    throw new InvalidOperationException(
+                        "This inspection has already been approved.");
+                }
+
+                var hasUnclearedFaults = await _db.TruckFaults.AnyAsync(
+                    fault => fault.TruckId == assignment.TruckId &&
+                             fault.Status != "Cleared",
+                    cancellationToken);
+
+                if (hasUnclearedFaults)
+                {
+                    throw new InvalidOperationException(
+                        "Workshop must clear all truck faults before approval.");
+                }
+
+                inspection.ApprovedAt = DateTime.UtcNow;
+                inspection.ApprovedByUserId = adminId;
+
+                await _db.SaveChangesAsync(cancellationToken);
+
+                var response = await BuildResponseAsync(
+                    inspection,
+                    cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+
+                return response;
+            }
+            catch (Exception exception)
+                when (IsConcurrentChange(exception))
+            {
+                throw new InvalidOperationException(
+                    "The assignment or inspection changed. Refresh and try again.",
+                    exception);
+            }
+        }
         private async Task<TruckInspectionResponseDto> BuildResponseAsync(
             TruckInspection inspection,
             CancellationToken cancellationToken)
@@ -666,6 +842,8 @@ namespace Avemel.API.Services
                 AdditionalComments = inspection.AdditionalComments,
                 CreatedAt = inspection.CreatedAt,
                 SubmittedAt = inspection.SubmittedAt,
+                ApprovedAt = inspection.ApprovedAt,
+                ApprovedByUserId = inspection.ApprovedByUserId,
                 Answers = answers.Select(MapAnswer).ToList(),
                 Photos = photos
             };
