@@ -104,6 +104,8 @@ builder.Services.AddScoped<IInspectionPhotoStorage, LocalInspectionPhotoStorage>
 builder.Services.AddScoped<ITruckInspectionPhotoService, TruckInspectionPhotoService>();
 builder.Services.AddScoped<ITruckFaultService, TruckFaultService>();
 builder.Services.AddScoped<ITruckReplacementService, TruckReplacementService>();
+builder.Services.AddScoped<ITripService, TripService>();
+builder.Services.AddScoped<ITripLoadingPhotoService,TripLoadingPhotoService>();
 
 builder.Services.AddCors(options =>
 {

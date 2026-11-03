@@ -140,6 +140,119 @@ namespace AvemelAPI.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Avemel.API.Models.Trip", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CompletedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DepartureApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DepartureApprovedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DepartureRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("LoadType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("TruckAssignmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TruckInspectionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompletedByUserId");
+
+                    b.HasIndex("DepartureApprovedByUserId");
+
+                    b.HasIndex("TruckAssignmentId")
+                        .IsUnique()
+                        .HasFilter("\"CompletedAt\" IS NULL");
+
+                    b.HasIndex("TruckInspectionId");
+
+                    b.ToTable("Trips");
+                });
+
+            modelBuilder.Entity("Avemel.API.Models.TripLoadingPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Angle")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("TripId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UploadedByUserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("TripId", "Angle")
+                        .IsUnique();
+
+                    b.ToTable("TripLoadingPhotos");
+                });
+
             modelBuilder.Entity("Avemel.API.Models.Truck", b =>
                 {
                     b.Property<int>("Id")
@@ -475,6 +588,58 @@ namespace AvemelAPI.Migrations
                     b.Navigation("Trailer");
 
                     b.Navigation("TruckAssignment");
+                });
+
+            modelBuilder.Entity("Avemel.API.Models.Trip", b =>
+                {
+                    b.HasOne("Avemel.API.Models.AppUser", "CompletedByUser")
+                        .WithMany()
+                        .HasForeignKey("CompletedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Avemel.API.Models.AppUser", "DepartureApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("DepartureApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Avemel.API.Models.TruckAssignment", "TruckAssignment")
+                        .WithMany()
+                        .HasForeignKey("TruckAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Avemel.API.Models.TruckInspection", "TruckInspection")
+                        .WithMany()
+                        .HasForeignKey("TruckInspectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CompletedByUser");
+
+                    b.Navigation("DepartureApprovedByUser");
+
+                    b.Navigation("TruckAssignment");
+
+                    b.Navigation("TruckInspection");
+                });
+
+            modelBuilder.Entity("Avemel.API.Models.TripLoadingPhoto", b =>
+                {
+                    b.HasOne("Avemel.API.Models.Trip", "Trip")
+                        .WithMany()
+                        .HasForeignKey("TripId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Avemel.API.Models.AppUser", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Trip");
+
+                    b.Navigation("UploadedByUser");
                 });
 
             modelBuilder.Entity("Avemel.API.Models.TruckAssignment", b =>

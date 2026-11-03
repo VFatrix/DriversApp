@@ -304,13 +304,29 @@ namespace Avemel.API.Services
                     _db.TruckFaults.Add(new TruckFault
                     {
                         TruckId = inspection.TruckAssignment.TruckId,
+                        TruckInspectionId = inspection.Id,
                         TruckInspectionAnswerId = answer.Id,
-
+                       
                         // The linked answer retains the checklist code and label.
                         Description = string.IsNullOrWhiteSpace(answer.Notes)
                           ? $"Defect reported for checklist item: {answer.CheckCode}."
                                : answer.Notes.Trim(),
 
+                        Status = "Open",
+                        ReportedByUserId = driverId,
+                        ReportedAt = submittedAt
+                    });
+                }
+
+                // Send additional issues/comments to Workshop for review.
+                if (!string.IsNullOrWhiteSpace(inspection.AdditionalComments))
+                {
+                    _db.TruckFaults.Add(new TruckFault
+                    {
+                        TruckId = inspection.TruckAssignment.TruckId,
+                        TruckInspectionId = inspection.Id,
+                        TruckInspectionAnswerId = null,
+                        Description = inspection.AdditionalComments.Trim(),
                         Status = "Open",
                         ReportedByUserId = driverId,
                         ReportedAt = submittedAt

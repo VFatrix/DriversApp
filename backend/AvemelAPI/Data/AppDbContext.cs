@@ -25,6 +25,11 @@ namespace Avemel.API.Data
         public DbSet<TruckInspectionAnswer> TruckInspectionAnswers =>
             Set<TruckInspectionAnswer>();
 
+        public DbSet<TripLoadingPhoto> TripLoadingPhotos =>
+    Set<TripLoadingPhoto>();
+
+        public DbSet<Trip> Trips => Set<Trip>();
+
         public DbSet<TruckInspectionPhoto> TruckInspectionPhotos =>
             Set<TruckInspectionPhoto>();
 
@@ -274,6 +279,55 @@ namespace Avemel.API.Data
                 entity.HasOne(x => x.ReplacementTruckAssignment)
                     .WithMany()
                     .HasForeignKey(x => x.ReplacementTruckAssignmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Trip>(entity =>
+            {
+                entity.HasKey(trip => trip.Id);
+
+                entity.HasOne(trip => trip.TruckAssignment)
+                    .WithMany()
+                    .HasForeignKey(trip => trip.TruckAssignmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(trip => trip.TruckInspection)
+                    .WithMany()
+                    .HasForeignKey(trip => trip.TruckInspectionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(trip => trip.DepartureApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(trip => trip.DepartureApprovedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(trip => trip.CompletedByUser)
+                    .WithMany()
+                    .HasForeignKey(trip => trip.CompletedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Only one unfinished trip per truck assignment.
+                entity.HasIndex(trip => trip.TruckAssignmentId)
+                    .IsUnique()
+                    .HasFilter("\"CompletedAt\" IS NULL");
+            });
+
+            modelBuilder.Entity<TripLoadingPhoto>(entity =>
+            {
+                entity.HasKey(photo => photo.Id);
+
+                // Only one photo per view for each trip.
+                entity.HasIndex(photo => new { photo.TripId, photo.Angle })
+                    .IsUnique();
+
+                entity.HasOne(photo => photo.Trip)
+                    .WithMany()
+                    .HasForeignKey(photo => photo.TripId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(photo => photo.UploadedByUser)
+                    .WithMany()
+                    .HasForeignKey(photo => photo.UploadedByUserId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
         }

@@ -4,6 +4,7 @@ import TruckInspectionPanel from "./TruckInspectionPanel";
 import DriverTruckFaults from "./DriverTruckFaults";
 import TruckReplacementPanel from "./TruckReplacementPanel";
 import DriverTrailerSelection from "./DriverTrailerSelection";
+import DriverLoadingPanel from "./DriverLoadingPanel";
 import TruckSelection from "./TruckSelection";
 
 export default function DriverVehicleWorkflow() {
@@ -88,6 +89,11 @@ export default function DriverVehicleWorkflow() {
   onSubmitted={() =>
     setFaultRefreshKey((current) => current + 1)
   }
+/>
+
+<DriverLoadingPanel
+  key={`loading-${assignment.id}`}
+  assignmentId={assignment.id}
 />
 
 <DriverTruckFaults
