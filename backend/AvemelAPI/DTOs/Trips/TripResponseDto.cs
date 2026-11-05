@@ -22,6 +22,34 @@
 
         public DateTime CreatedAt { get; set; }
 
+        public string? InstructionReference { get; set; }
+
+        public string? CustomerName { get; set; }
+
+        public string? BookingNumber { get; set; }
+
+        public DateTime? BookingAt { get; set; }
+
+        public string? CollectionAddress { get; set; }
+
+        public string? CollectionContact { get; set; }
+
+        public string? CargoDescription { get; set; }
+
+        public DateTime? PlannedLoadingAt { get; set; }
+
+        public string? LoadingInstructions { get; set; }
+
+        public string? DeliveryAddress { get; set; }
+
+        public string? DeliveryContact { get; set; }
+
+        public string? DeliveryInstructions { get; set; }
+
+        public DateTime? InstructionsIssuedAt { get; set; }
+
+        public int? InstructionsIssuedByUserId { get; set; }
+
         public DateTime? DepartureRequestedAt { get; set; }
 
         public DateTime? DepartureApprovedAt { get; set; }

@@ -217,6 +217,48 @@ const requestDeparture = async () => {
     setRequestingDeparture(false);
   }
 };
+useEffect(() => {
+  if (
+    !trip?.id ||
+    trip.status !== "AwaitingDepartureApproval"
+  ) {
+    return;
+  }
+
+  let cancelled = false;
+  let timer;
+  const tripId = trip.id;
+
+  const checkApproval = async () => {
+    try {
+      const updated = await tripService.getById(tripId);
+
+      if (cancelled) return;
+
+      setTrip((current) =>
+        current?.id === tripId ? updated : current
+      );
+
+      if (updated.status !== "AwaitingDepartureApproval") {
+        return;
+      }
+    } catch {
+      // Keep the current status and retry.
+      // The existing Refresh loading button remains available.
+    }
+
+    if (!cancelled) {
+      timer = setTimeout(checkApproval, 5000);
+    }
+  };
+
+  checkApproval();
+
+  return () => {
+    cancelled = true;
+    clearTimeout(timer);
+  };
+}, [trip?.id, trip?.status]);
 
   return (
     <section className="mt-4 border rounded-xl p-4 bg-white">
@@ -256,6 +298,28 @@ const requestDeparture = async () => {
           <p className="text-sm mt-1">
             Status: {trip.status}
           </p>
+
+          {trip.status === "DepartureApproved" &&
+  trip.departureApprovedAt && (
+    <div
+      role="status"
+      aria-live="polite"
+      className="mt-4 border border-green-400 rounded-xl p-4 bg-green-50"
+    >
+      <p className="font-bold text-green-800">
+        Departure authorized by Admin
+      </p>
+
+      <p className="text-sm text-green-800 mt-1">
+        Your departure request has been approved.
+      </p>
+
+      <p className="text-xs text-green-700 mt-2">
+        Approved:{" "}
+        {new Date(trip.departureApprovedAt).toLocaleString()}
+      </p>
+    </div>
+)}
 
           {["Loading", "Preparing"].includes(trip.status) && (
   <div className="mt-4">

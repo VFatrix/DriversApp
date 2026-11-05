@@ -273,7 +273,7 @@ namespace Avemel.API.Services
 
 
         public async Task<List<PendingDepartureResponseDto>>
-    GetPendingDeparturesAsync(
+      GetPendingDeparturesAsync(
         int operationsUserId,
         CancellationToken cancellationToken = default)
         {
@@ -555,7 +555,165 @@ namespace Avemel.API.Services
                     exception);
             }
         }
+        public async Task<TripResponseDto> IssueInstructionsAsync(
+    int tripId,
+    int adminId,
+    IssueTripInstructionsRequestDto request,
+    CancellationToken cancellationToken = default)
+        {
+            Validator.ValidateObject(
+                request,
+                new ValidationContext(request),
+                validateAllProperties: true);
 
+            if (string.IsNullOrWhiteSpace(request.CustomerName) ||
+                string.IsNullOrWhiteSpace(request.CollectionAddress) ||
+                string.IsNullOrWhiteSpace(request.DeliveryAddress))
+            {
+                throw new ValidationException(
+                    "Customer name, collection address and delivery address are required.");
+            }
+
+            await using var transaction =
+                await _db.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable,
+                    cancellationToken);
+
+            try
+            {
+                var isActiveAdmin = await _db.Users.AnyAsync(
+                    user => user.Id == adminId &&
+                            user.IsActive &&
+                            user.Role == UserRoles.Admin,
+                    cancellationToken);
+
+                if (!isActiveAdmin)
+                {
+                    throw new UnauthorizedAccessException(
+                        "An active Admin account is required.");
+                }
+
+                var trip = await _db.Trips
+                    .Include(x => x.TruckAssignment)
+                        .ThenInclude(x => x.Truck)
+                    .Include(x => x.TruckAssignment)
+                        .ThenInclude(x => x.Driver)
+                    .SingleOrDefaultAsync(
+                        x => x.Id == tripId,
+                        cancellationToken);
+
+                if (trip is null)
+                {
+                    throw new KeyNotFoundException("Trip not found.");
+                }
+
+                if (trip.TruckAssignment.ReleasedAt is not null)
+                {
+                    throw new InvalidOperationException(
+                        "This truck assignment has been released.");
+                }
+
+                if (!trip.TruckAssignment.Truck.IsActive)
+                {
+                    throw new InvalidOperationException(
+                        "This truck is inactive.");
+                }
+
+                if (!trip.TruckAssignment.Driver.IsActive ||
+                    trip.TruckAssignment.Driver.Role != UserRoles.Driver)
+                {
+                    throw new InvalidOperationException(
+                        "An active driver account is required for this trip.");
+                }
+
+                if (trip.InstructionsIssuedAt is not null ||
+                    trip.InstructionsIssuedByUserId is not null ||
+                    !string.IsNullOrWhiteSpace(trip.InstructionReference))
+                {
+                    throw new InvalidOperationException(
+                        "Instructions have already been issued for this trip.");
+                }
+
+                if ((trip.Status != "Loading" &&
+                     trip.Status != "Preparing") ||
+                    trip.DepartureRequestedAt is not null ||
+                    trip.DepartureApprovedAt is not null ||
+                    trip.StartedAt is not null ||
+                    trip.DeliveredAt is not null ||
+                    trip.CompletedAt is not null)
+                {
+                    throw new InvalidOperationException(
+                        "Instructions must be issued before departure is requested.");
+                }
+
+                var issuedAt = DateTime.UtcNow;
+
+                trip.InstructionReference =
+                    $"AVE-{issuedAt:yyyyMMdd}-{trip.Id:D6}";
+
+                trip.CustomerName = request.CustomerName.Trim();
+
+                trip.BookingNumber =
+                    string.IsNullOrWhiteSpace(request.BookingNumber)
+                        ? null
+                        : request.BookingNumber.Trim();
+
+                trip.BookingAt = request.BookingAt?.UtcDateTime;
+
+                trip.CollectionAddress = request.CollectionAddress.Trim();
+
+                trip.CollectionContact =
+                    string.IsNullOrWhiteSpace(request.CollectionContact)
+                        ? null
+                        : request.CollectionContact.Trim();
+
+                trip.CargoDescription =
+                    string.IsNullOrWhiteSpace(request.CargoDescription)
+                        ? null
+                        : request.CargoDescription.Trim();
+
+                trip.PlannedLoadingAt =
+                    request.PlannedLoadingAt?.UtcDateTime;
+
+                trip.LoadingInstructions =
+                    string.IsNullOrWhiteSpace(request.LoadingInstructions)
+                        ? null
+                        : request.LoadingInstructions.Trim();
+
+                trip.DeliveryAddress = request.DeliveryAddress.Trim();
+
+                trip.DeliveryContact =
+                    string.IsNullOrWhiteSpace(request.DeliveryContact)
+                        ? null
+                        : request.DeliveryContact.Trim();
+
+                trip.DeliveryInstructions =
+                    string.IsNullOrWhiteSpace(request.DeliveryInstructions)
+                        ? null
+                        : request.DeliveryInstructions.Trim();
+
+                trip.InstructionsIssuedAt = issuedAt;
+                trip.InstructionsIssuedByUserId = adminId;
+
+                await _db.SaveChangesAsync(cancellationToken);
+
+                var response = await GetTripQuery()
+                    .SingleAsync(
+                        x => x.Id == tripId,
+                        cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+
+                return response;
+            }
+            catch (Exception exception)
+                when (IsTripConcurrencyConflict(exception))
+            {
+                throw new InvalidOperationException(
+                    "Trip availability changed. Refresh and try again.",
+                    exception);
+            }
+        }
         public async Task<TripResponseDto?> GetMyActiveAsync(
             int driverId,
             CancellationToken cancellationToken = default)
@@ -638,6 +796,20 @@ namespace Avemel.API.Services
                     Direction = trip.Direction,
                     Status = trip.Status,
                     CreatedAt = trip.CreatedAt,
+                    InstructionReference = trip.InstructionReference,
+                    CustomerName = trip.CustomerName,
+                    BookingNumber = trip.BookingNumber,
+                    BookingAt = trip.BookingAt,
+                    CollectionAddress = trip.CollectionAddress,
+                    CollectionContact = trip.CollectionContact,
+                    CargoDescription = trip.CargoDescription,
+                    PlannedLoadingAt = trip.PlannedLoadingAt,
+                    LoadingInstructions = trip.LoadingInstructions,
+                    DeliveryAddress = trip.DeliveryAddress,
+                    DeliveryContact = trip.DeliveryContact,
+                    DeliveryInstructions = trip.DeliveryInstructions,
+                    InstructionsIssuedAt = trip.InstructionsIssuedAt,
+                    InstructionsIssuedByUserId = trip.InstructionsIssuedByUserId,
                     DepartureRequestedAt = trip.DepartureRequestedAt,
                     DepartureApprovedAt = trip.DepartureApprovedAt,
                     DepartureApprovedByUserId =

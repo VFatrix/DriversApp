@@ -1,4 +1,5 @@
-﻿using Avemel.API.DTOs.Trucks;
+﻿using Avemel.API.DTOs.Trips;
+using Avemel.API.DTOs.Trucks;
 
 namespace Avemel.API.Services
 {
@@ -25,5 +26,11 @@ namespace Avemel.API.Services
         Task RestoreAsync(
             int id,
             CancellationToken cancellationToken = default);
+
+        Task<TripResponseDto> IssueInstructionsAsync(
+    int tripId,
+    int adminId,
+    IssueTripInstructionsRequestDto request,
+    CancellationToken cancellationToken = default);
     }
 }

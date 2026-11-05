@@ -148,6 +148,25 @@ namespace AvemelAPI.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("BookingAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("BookingNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CargoDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("CollectionAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("CollectionContact")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -157,8 +176,24 @@ namespace AvemelAPI.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<DateTime?>("DeliveredAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeliveryAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DeliveryContact")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("DeliveryInstructions")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<DateTime?>("DepartureApprovedAt")
                         .HasColumnType("timestamp with time zone");
@@ -174,10 +209,27 @@ namespace AvemelAPI.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<string>("InstructionReference")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("InstructionsIssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("InstructionsIssuedByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("LoadType")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
+
+                    b.Property<string>("LoadingInstructions")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("PlannedLoadingAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -198,6 +250,8 @@ namespace AvemelAPI.Migrations
                     b.HasIndex("CompletedByUserId");
 
                     b.HasIndex("DepartureApprovedByUserId");
+
+                    b.HasIndex("InstructionsIssuedByUserId");
 
                     b.HasIndex("TruckAssignmentId")
                         .IsUnique()
@@ -602,6 +656,11 @@ namespace AvemelAPI.Migrations
                         .HasForeignKey("DepartureApprovedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Avemel.API.Models.AppUser", "InstructionsIssuedByUser")
+                        .WithMany()
+                        .HasForeignKey("InstructionsIssuedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Avemel.API.Models.TruckAssignment", "TruckAssignment")
                         .WithMany()
                         .HasForeignKey("TruckAssignmentId")
@@ -617,6 +676,8 @@ namespace AvemelAPI.Migrations
                     b.Navigation("CompletedByUser");
 
                     b.Navigation("DepartureApprovedByUser");
+
+                    b.Navigation("InstructionsIssuedByUser");
 
                     b.Navigation("TruckAssignment");
 

@@ -310,6 +310,11 @@ namespace Avemel.API.Data
                 entity.HasIndex(trip => trip.TruckAssignmentId)
                     .IsUnique()
                     .HasFilter("\"CompletedAt\" IS NULL");
+
+                entity.HasOne(trip => trip.InstructionsIssuedByUser)
+                  .WithMany()
+                  .HasForeignKey(trip => trip.InstructionsIssuedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<TripLoadingPhoto>(entity =>
