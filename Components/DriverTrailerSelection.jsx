@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import trailerService from "../services/trailerService";
+import trailerService from "../Services/trailerService";
 
 export default function DriverTrailerSelection({ assignmentId,readOnly= false }) {
   const [trailers, setTrailers] = useState([]);

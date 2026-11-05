@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import inspectionService from "../services/inspectionService";
+import inspectionService from "../Services/inspectionService";
 import inspectionQuestions from "../Components/inspectionQuestions";
 
 export default function InspectionAnswer({

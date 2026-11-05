@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import workshopService from "../services/workshopService";
+import workshopService from "../Services/workshopService";
 import InspectionPhoto from "./InspectionPhoto";
 
 export default function WorkshopInspectionDetails({

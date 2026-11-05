@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ReplacementTruckSelection from "./ReplacementTruckSelection";
-import replacementService from "../services/replacementService";
+import replacementService from "../Services/replacementService";
 
 export default function TruckReplacementPanel({ assignmentId , onReplaced}) {
   const [request, setRequest] = useState(null);

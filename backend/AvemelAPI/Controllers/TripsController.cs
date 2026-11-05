@@ -137,6 +137,55 @@ namespace Avemel.API.Controllers
             }
         }
 
+        // POST /api/trips/1/request-departure
+        [HttpPost("{tripId:int:min(1)}/request-departure")]
+        public async Task<ActionResult<TripResponseDto>> RequestDeparture(
+            int tripId,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetDriverId(out var driverId))
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var trip = await _service.RequestDepartureAsync(
+                    tripId,
+                    driverId,
+                    cancellationToken);
+
+                return Ok(trip);
+            }
+            catch (ValidationException exception)
+            {
+                return BadRequest(new
+                {
+                    message = exception.Message
+                });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new
+                {
+                    message = exception.Message
+                });
+            }
+            catch (InvalidOperationException exception)
+                when (IsExpectedConflict(exception.Message))
+            {
+                return Conflict(new
+                {
+                    message = exception.Message
+                });
+            }
+        }
+
+
         private bool TryGetDriverId(out int driverId)
         {
             return int.TryParse(
@@ -152,7 +201,11 @@ namespace Avemel.API.Controllers
                 or "The driver or truck already has an unfinished trip."
                 or "Workshop must clear all truck faults before loading."
                 or "The latest inspection must be approved by Admin before loading."
-                or "Trip availability changed. Refresh and try again.";
+                or "Trip availability changed. Refresh and try again."
+                or "Departure has already been requested or the trip has progressed."
+                or "This trip is not ready to request departure."
+                or "The trip's inspection is no longer the latest approved inspection."
+                or "Workshop must clear all truck faults before departure.";
         }
     }
 }

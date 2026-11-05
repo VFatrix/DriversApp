@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import replacementService from "../services/replacementService";
+import replacementService from "../Services/replacementService";
 import WorkshopReplacementReview from "./WorkshopReplacementReview";
 
 export default function WorkshopReplacementList() {

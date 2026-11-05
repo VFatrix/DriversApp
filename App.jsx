@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 import TrailersAdmin from "./Components/TrailersAdmin";
-import authService from "/services/authService";
+import authService from "/Services/authService";
 import WorkshopReplacementList from "./components/WorkshopReplacementList";
 import WorkshopFaultList from "./components/WorkshopFaultList";
 import DriversAdmin from "./Components/DriversAdmin";
 import DriverTruckFaults from "/components/DriverTruckFaults";
 import DriverVehicleWorkflow from "./Components/DriverVehicleWorkflow";
 import AdminInspectionApprovals from "./Components/AdminInspectionApprovals";
+import OperationsDepartureApprovals from "./Components/OperationsDepartureApprovals";
 import TrucksAdmin from "./Components/TrucksAdmin";
 
 const RED = "#EA2227";
@@ -728,7 +729,10 @@ function LegacyDriversAdmin({ fleet, saveFleet }) {
       </div>
 
       {tab === "inspections" && (
+        <>
         <AdminInspectionApprovals />
+        <OperationsDepartureApprovals />
+        </>
       )}
     </div>
   );
@@ -1508,6 +1512,7 @@ function OpsView({ data, fleet, updTrip, saveFleet, opsTrip, setOpsTrip, approve
 
   return (
     <div>
+    
       <Tabs value={tab} onChange={setTab} tabs={[
         { k: "trips", label: "Trips" },
         { k: "pods", label: "POD Approvals", badge: awaitingPod || null },

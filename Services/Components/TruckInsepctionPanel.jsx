@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import inspectionService from "../services/inspectionService";
+import inspectionService from "../Services/inspectionService";
 import InspectionAnswer from "./InspectionAnswer";
 import InspectionPhoto from "./InspectionPhoto";
 

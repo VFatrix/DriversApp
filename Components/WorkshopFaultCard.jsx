@@ -1,6 +1,6 @@
 import { useState } from "react";
 import WorkshopInspectionDetails from "./WorkshopInspectionDetails";
-import workshopService from "../services/workshopService";
+import workshopService from "../Services/workshopService";
 
 export default function WorkshopFaultCard({ fault, onCleared }) {
   const [notes, setNotes] = useState("");

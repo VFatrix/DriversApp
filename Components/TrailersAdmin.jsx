@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import trailerService from "../services/trailerService";
+import trailerService from "../Services/trailerService";
 
 export default function TrailersAdmin() {
   const [trailers, setTrailers] = useState([]);

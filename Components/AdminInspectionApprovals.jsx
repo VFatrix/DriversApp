@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import adminInspectionService from "../services/adminInspectionService";
+import adminInspectionService from "../Services/adminInspectionService";
 import WorkshopInspectionDetails from "./WorkshopInspectionDetails";
 
 export default function AdminInspectionApprovals() {

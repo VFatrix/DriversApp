@@ -11,6 +11,7 @@ export default function DriverLoadingPanel({ assignmentId }) {
   const [direction, setDirection] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [requestingDeparture, setRequestingDeparture] = useState(false);
   const [error, setError] = useState("");
   const [photos, setPhotos] = useState([]);
   const [photosLoading, setPhotosLoading] = useState(false);
@@ -137,7 +138,7 @@ const canUploadPhotos =
     inspection?.status === "Submitted" &&
     Boolean(inspection?.approvedAt);
 
-  const busy = loading || saving;
+  const busy = loading || saving || requestingDeparture;
 
   const beginLoading = async (event) => {
     event.preventDefault();
@@ -180,6 +181,43 @@ const canUploadPhotos =
     }
   };
 
+  const canRequestDeparture =
+  trip?.assignmentId === assignmentId &&
+  ["Loading", "Preparing"].includes(trip?.status) &&
+  !trip?.departureRequestedAt &&
+  !trip?.departureApprovedAt &&
+  !trip?.startedAt &&
+  !trip?.completedAt &&
+  (
+    trip?.loadType === "Empty" ||
+    (
+      requiredViews.length === 4 &&
+      !photosLoading &&
+      !photosError &&
+      requiredViews.every(([angle]) =>
+        photos.some((photo) => photo.angle === angle)
+      )
+    )
+  );
+
+const requestDeparture = async () => {
+  if (busy || !canRequestDeparture) return;
+
+  setRequestingDeparture(true);
+  setError("");
+
+  try {
+    const updated = await tripService.requestDeparture(trip.id);
+    setTrip(updated);
+  } catch (err) {
+    setError(
+      err.message || "Unable to request departure authorization."
+    );
+  } finally {
+    setRequestingDeparture(false);
+  }
+};
+
   return (
     <section className="mt-4 border rounded-xl p-4 bg-white">
       <h3 className="font-bold text-lg mb-3">Loading</h3>
@@ -199,7 +237,7 @@ const canUploadPhotos =
           {trip.assignmentId !== assignmentId && (
             <p role="alert" className="text-sm text-red-700 mb-3">
               You have an unfinished trip on another assignment.
-              Contact Operations before continuing.
+              Contact Admin before continuing.
             </p>
           )}
 
@@ -218,6 +256,42 @@ const canUploadPhotos =
           <p className="text-sm mt-1">
             Status: {trip.status}
           </p>
+
+          {["Loading", "Preparing"].includes(trip.status) && (
+  <div className="mt-4">
+    <button
+      type="button"
+      onClick={requestDeparture}
+      disabled={busy || !canRequestDeparture}
+      className="w-full bg-red-700 text-white rounded-lg px-4 py-3 font-bold disabled:opacity-40"
+    >
+      {requestingDeparture
+        ? "Sending request…"
+        : "Request departure authorization"}
+    </button>
+
+    {trip.loadType !== "Empty" && (
+      <p className="text-xs text-gray-500 mt-2">
+        Save all four loading photos before requesting authorization.
+      </p>
+    )}
+  </div>
+)}
+
+{trip.status === "AwaitingDepartureApproval" && (
+  <div
+    role="status"
+    className="mt-4 border border-amber-300 rounded-lg p-3 bg-amber-50"
+  >
+    <p className="font-semibold text-amber-900">
+      Awaiting Admin approval
+    </p>
+    <p className="text-sm text-amber-800 mt-1">
+      Your departure request has been saved. Do not depart until
+      Admin authorizes the trip.
+    </p>
+  </div>
+)}
 
           {requiredViews.length > 0 && (
   <div className="mt-4">
@@ -275,8 +349,8 @@ const canUploadPhotos =
           {["Loading", "Preparing"].includes(trip.status) && (
   <p className="text-sm text-amber-800 mt-3">
     {trip.loadType === "Empty"
-      ? "This is an empty trip. No loading photos are required. Operations must authorize departure before you may leave."
-      : "Upload all four required loading photos. Operations must review them and authorize departure before you may leave."}
+      ? "This is an empty trip. No loading photos are required. Admin must authorize departure before you may leave."
+      : "Upload all four required loading photos. Admin must review them and authorize departure before you may leave."}
   </p>
 )}
         </div>

@@ -26,6 +26,11 @@ const tripService = {
     }
   },
 
+requestDeparture: (tripId) =>
+  apiRequest(`/api/trips/${tripId}/request-departure`, {
+    method: "POST"
+  }),
+
   getById: (tripId) =>
     apiRequest(`/api/trips/${tripId}`)
 };

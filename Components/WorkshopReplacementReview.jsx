@@ -1,5 +1,5 @@
 import { useState } from "react";
-import replacementService from "../services/replacementService";
+import replacementService from "../Services/replacementService";
 
 export default function WorkshopReplacementReview({
   request,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import truckService from "../services/truckService";
+import truckService from "../Services/truckService";
 
 export default function TruckSelection({ onAssigned }) {
   const [trucks, setTrucks] = useState([]);

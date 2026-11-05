@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import truckService from "../services/truckService";
-import replacementService from "../services/replacementService";
+import truckService from "../Services/truckService";
+import replacementService from "../Services/replacementService";
 
 export default function ReplacementTruckSelection({
   requestId,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import workshopService from "../services/workshopService";
+import workshopService from "../Services/workshopService";
 
 export default function DriverTruckFaults({
   assignmentId,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import truckService from "../services/truckService";
+import truckService from "../Services/truckService";
 import TruckInspectionPanel from "./TruckInspectionPanel";
 import DriverTruckFaults from "./DriverTruckFaults";
 import TruckReplacementPanel from "./TruckReplacementPanel";
