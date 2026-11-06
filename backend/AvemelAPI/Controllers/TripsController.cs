@@ -205,7 +205,9 @@ namespace Avemel.API.Controllers
                 or "Departure has already been requested or the trip has progressed."
                 or "This trip is not ready to request departure."
                 or "The trip's inspection is no longer the latest approved inspection."
-                or "Workshop must clear all truck faults before departure.";
+                or "Workshop must clear all truck faults before departure." 
+                or "Admin must issue complete trip instructions before departure.";
+
         }
     }
 }

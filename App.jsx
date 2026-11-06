@@ -10,6 +10,7 @@ import DriverVehicleWorkflow from "./Components/DriverVehicleWorkflow";
 import AdminInspectionApprovals from "./Components/AdminInspectionApprovals";
 import OperationsDepartureApprovals from "./Components/OperationsDepartureApprovals";
 import TrucksAdmin from "./Components/TrucksAdmin";
+import AdminTripInstructions from "./Components/AdminTripInstructions";
 
 const RED = "#EA2227";
 const DARK = "#1b1b1b";
@@ -689,53 +690,58 @@ function LegacyDriversAdmin({ fleet, saveFleet }) {
     { id: "drivers", label: "Drivers" },
     { id: "trucks", label: "Trucks" },
     { id: "trailers", label: "Trailers" },
-    { id: "inspections", label: "Inspection approvals" }
+    { id: "inspections", label: "Inspection approvals" },
+    { id: "trip-instructions", label: "Trip instructions" }
   ];
 
-  return (
-    <div className="space-y-4">
-      <div
-        role="group"
-        aria-label="Admin sections"
-        className="flex flex-wrap gap-2 border-b pb-3"
-      >
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setTab(item.id)}
-            aria-pressed={tab === item.id}
-            className={`rounded-lg px-5 py-2 font-semibold ${
-              tab === item.id
-                ? "bg-red-700 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+ return (
+  <div className="space-y-4">
+    <div
+      role="group"
+      aria-label="Admin sections"
+      className="flex flex-wrap gap-2 border-b pb-3"
+    >
+      {tabs.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => setTab(item.id)}
+          aria-pressed={tab === item.id}
+          className={`rounded-lg px-5 py-2 font-semibold ${
+            tab === item.id
+              ? "bg-red-700 text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
 
-      <div hidden={tab !== "drivers"}>
-        <DriversAdmin />
-      </div>
+    <div hidden={tab !== "drivers"}>
+      <DriversAdmin />
+    </div>
 
-      <div hidden={tab !== "trucks"}>
-        <TrucksAdmin />
-      </div>
+    <div hidden={tab !== "trucks"}>
+      <TrucksAdmin />
+    </div>
 
-      <div hidden={tab !== "trailers"}>
-        <TrailersAdmin />
-      </div>
+    <div hidden={tab !== "trailers"}>
+      <TrailersAdmin />
+    </div>
 
-      {tab === "inspections" && (
-        <>
+    {tab === "inspections" && (
+      <>
         <AdminInspectionApprovals />
         <OperationsDepartureApprovals />
-        </>
-      )}
-    </div>
-  );
+      </>
+    )}
+
+    {tab === "trip-instructions" && (
+      <AdminTripInstructions />
+    )}
+  </div>
+);
 }
 
 function StatusTag({ reg, isTrailer, data }) {

@@ -182,6 +182,12 @@ const canUploadPhotos =
   };
 
   const canRequestDeparture =
+    Boolean(trip?.instructionsIssuedAt) &&
+  Boolean(trip?.instructionsIssuedByUserId) &&
+  Boolean(trip?.instructionReference?.trim()) &&
+  Boolean(trip?.customerName?.trim()) &&
+  Boolean(trip?.collectionAddress?.trim()) &&
+  Boolean(trip?.deliveryAddress?.trim()) &&
   trip?.assignmentId === assignmentId &&
   ["Loading", "Preparing"].includes(trip?.status) &&
   !trip?.departureRequestedAt &&
@@ -299,6 +305,71 @@ useEffect(() => {
             Status: {trip.status}
           </p>
 
+             {trip.instructionsIssuedAt ? (
+  <section className="mt-4 border rounded-xl p-4 bg-blue-50">
+    <h4 className="font-bold text-lg">
+      Trip instructions from Admin
+    </h4>
+
+    <p className="text-sm text-gray-600 mt-1">
+      Reference: {trip.instructionReference}
+    </p>
+
+    <dl className="mt-3 space-y-3 text-sm">
+      {[
+        ["Customer", trip.customerName],
+        ["Booking number", trip.bookingNumber],
+        [
+          "Booking time",
+          trip.bookingAt
+            ? new Date(trip.bookingAt).toLocaleString()
+            : null
+        ],
+        ["Collection / departure address", trip.collectionAddress],
+        ["Collection contact", trip.collectionContact],
+        ["Cargo", trip.cargoDescription],
+        [
+          "Planned loading time",
+          trip.plannedLoadingAt
+            ? new Date(trip.plannedLoadingAt).toLocaleString()
+            : null
+        ],
+        ["Loading instructions", trip.loadingInstructions],
+        ["Delivery / destination address", trip.deliveryAddress],
+        ["Delivery contact", trip.deliveryContact],
+        ["Delivery instructions", trip.deliveryInstructions]
+      ]
+        .filter(([, value]) => value)
+        .map(([label, value]) => (
+          <div key={label}>
+            <dt className="font-semibold">{label}</dt>
+            <dd className="mt-1 whitespace-pre-wrap break-words">
+              {value}
+            </dd>
+          </div>
+        ))}
+    </dl>
+
+    <p className="text-xs text-gray-500 mt-4">
+      Issued:{" "}
+      {new Date(trip.instructionsIssuedAt).toLocaleString()}
+    </p>
+  </section>
+) : (
+  <div
+    role="status"
+    className="mt-4 border border-amber-300 rounded-xl p-3 bg-amber-50"
+  >
+    <p className="font-semibold text-amber-900">
+      Awaiting trip instructions from Admin
+    </p>
+
+    <p className="text-sm text-amber-800 mt-1">
+      After Admin issues your instructions, press Refresh loading
+      to view them.
+    </p>
+  </div>
+)}
           {trip.status === "DepartureApproved" &&
   trip.departureApprovedAt && (
     <div

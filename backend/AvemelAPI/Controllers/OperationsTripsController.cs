@@ -108,7 +108,8 @@ namespace Avemel.API.Controllers
                 or "An active driver account is required for this trip."
                 or "The trip's inspection is no longer the latest approved inspection."
                 or "Workshop must clear all truck faults before departure."
-                or "Trip availability changed. Refresh and try again.";
+                or "Trip availability changed. Refresh and try again." 
+                or "Admin must issue complete trip instructions before departure.";
         }
     }
 }

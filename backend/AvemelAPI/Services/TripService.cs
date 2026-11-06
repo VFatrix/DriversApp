@@ -167,6 +167,16 @@ namespace Avemel.API.Services
                 {
                     throw new KeyNotFoundException("Trip not found.");
                 }
+                if (trip.InstructionsIssuedAt is null ||
+    trip.InstructionsIssuedByUserId is null ||
+    string.IsNullOrWhiteSpace(trip.InstructionReference) ||
+    string.IsNullOrWhiteSpace(trip.CustomerName) ||
+    string.IsNullOrWhiteSpace(trip.CollectionAddress) ||
+    string.IsNullOrWhiteSpace(trip.DeliveryAddress))
+                {
+                    throw new InvalidOperationException(
+                        "Admin must issue complete trip instructions before departure.");
+                }
 
                 if (trip.TruckAssignment.ReleasedAt is not null)
                 {
@@ -300,6 +310,13 @@ namespace Avemel.API.Services
                     trip.LoadType,
                     trip.Direction,
                     trip.DepartureRequestedAt,
+                    InstructionsComplete =
+    trip.InstructionsIssuedAt != null &&
+    trip.InstructionsIssuedByUserId != null &&
+    !string.IsNullOrWhiteSpace(trip.InstructionReference) &&
+    !string.IsNullOrWhiteSpace(trip.CustomerName) &&
+    !string.IsNullOrWhiteSpace(trip.CollectionAddress) &&
+    !string.IsNullOrWhiteSpace(trip.DeliveryAddress),
 
                     RegistrationNumber =
                         trip.TruckAssignment.Truck.RegistrationNumber,
@@ -374,6 +391,11 @@ namespace Avemel.API.Services
                 {
                     blockedReason =
                         "The trip must reference the latest admin-approved inspection.";
+                }
+                else if (!request.InstructionsComplete)
+                {
+                    blockedReason =
+                        "Admin must issue complete trip instructions before departure.";
                 }
                 else if (request.UnclearedFaultCount > 0)
                 {
@@ -453,6 +475,16 @@ namespace Avemel.API.Services
                 if (trip is null)
                 {
                     throw new KeyNotFoundException("Trip not found.");
+                }
+                if (trip.InstructionsIssuedAt is null ||
+    trip.InstructionsIssuedByUserId is null ||
+    string.IsNullOrWhiteSpace(trip.InstructionReference) ||
+    string.IsNullOrWhiteSpace(trip.CustomerName) ||
+    string.IsNullOrWhiteSpace(trip.CollectionAddress) ||
+    string.IsNullOrWhiteSpace(trip.DeliveryAddress))
+                {
+                    throw new InvalidOperationException(
+                        "Admin must issue complete trip instructions before departure.");
                 }
 
                 if (trip.Status != "AwaitingDepartureApproval" ||
@@ -626,12 +658,27 @@ namespace Avemel.API.Services
                         "An active driver account is required for this trip.");
                 }
 
-                if (trip.InstructionsIssuedAt is not null ||
-                    trip.InstructionsIssuedByUserId is not null ||
-                    !string.IsNullOrWhiteSpace(trip.InstructionReference))
+                var canIssueInstructions =
+    (
+        (trip.Status == "Loading" ||
+         trip.Status == "Preparing") &&
+        trip.DepartureRequestedAt is null
+    )
+    ||
+    (
+        trip.Status == "AwaitingDepartureApproval" &&
+        trip.DepartureRequestedAt is not null
+    );
+
+                if (!canIssueInstructions ||
+                    trip.DepartureApprovedAt is not null ||
+                    trip.DepartureApprovedByUserId is not null ||
+                    trip.StartedAt is not null ||
+                    trip.DeliveredAt is not null ||
+                    trip.CompletedAt is not null)
                 {
                     throw new InvalidOperationException(
-                        "Instructions have already been issued for this trip.");
+                        "Instructions can only be issued before departure approval.");
                 }
 
                 if ((trip.Status != "Loading" &&
@@ -713,6 +760,55 @@ namespace Avemel.API.Services
                     "Trip availability changed. Refresh and try again.",
                     exception);
             }
+        }
+
+        public async Task<List<TripResponseDto>> GetAwaitingInstructionsAsync(
+    int adminId,
+    CancellationToken cancellationToken = default)
+        {
+            var isActiveAdmin = await _db.Users.AnyAsync(
+                user => user.Id == adminId &&
+                        user.IsActive &&
+                        user.Role == UserRoles.Admin,
+                cancellationToken);
+
+            if (!isActiveAdmin)
+            {
+                throw new UnauthorizedAccessException(
+                    "An active Admin account is required.");
+            }
+
+            return await GetTripQuery()
+                .Where(trip =>
+                    (
+                        (
+                            (trip.Status == "Loading" ||
+                             trip.Status == "Preparing") &&
+                            trip.DepartureRequestedAt == null
+                        )
+                        ||
+                        (
+                            trip.Status == "AwaitingDepartureApproval" &&
+                            trip.DepartureRequestedAt != null
+                        )
+                    ) &&
+                    trip.InstructionsIssuedAt == null &&
+                    trip.InstructionsIssuedByUserId == null &&
+                    trip.InstructionReference == null &&
+                    trip.DepartureApprovedAt == null &&
+                    trip.DepartureApprovedByUserId == null &&
+                    trip.StartedAt == null &&
+                    trip.DeliveredAt == null &&
+                    trip.CompletedAt == null &&
+                    _db.TruckAssignments.Any(assignment =>
+                        assignment.Id == trip.AssignmentId &&
+                        assignment.ReleasedAt == null &&
+                        assignment.Truck.IsActive &&
+                        assignment.Driver.IsActive &&
+                        assignment.Driver.Role == UserRoles.Driver))
+                .OrderBy(trip => trip.CreatedAt)
+                .ThenBy(trip => trip.Id)
+                .ToListAsync(cancellationToken);
         }
         public async Task<TripResponseDto?> GetMyActiveAsync(
             int driverId,

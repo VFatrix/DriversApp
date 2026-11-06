@@ -27,10 +27,6 @@ namespace Avemel.API.Services
             int id,
             CancellationToken cancellationToken = default);
 
-        Task<TripResponseDto> IssueInstructionsAsync(
-    int tripId,
-    int adminId,
-    IssueTripInstructionsRequestDto request,
-    CancellationToken cancellationToken = default);
+
     }
 }

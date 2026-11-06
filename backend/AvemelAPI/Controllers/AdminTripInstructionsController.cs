@@ -20,8 +20,38 @@ namespace Avemel.API.Controllers
             _service = service;
         }
 
+
+
+        // GET /api/admin/trips/awaiting-instructions
+        [HttpGet("awaiting-instructions")]
+        public async Task<ActionResult<List<TripResponseDto>>>
+            GetAwaitingInstructions(CancellationToken cancellationToken)
+        {
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(claim, out var adminId) || adminId <= 0)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var trips = await _service.GetAwaitingInstructionsAsync(
+                    adminId,
+                    cancellationToken);
+
+                return Ok(trips);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+        }
+
         // POST /api/admin/trips/1/instructions
         [HttpPost("{tripId:int:min(1)}/instructions")]
+
+
         public async Task<ActionResult<TripResponseDto>> IssueInstructions(
             int tripId,
             [FromBody] IssueTripInstructionsRequestDto request,
@@ -80,7 +110,7 @@ namespace Avemel.API.Controllers
                 or "This truck is inactive."
                 or "An active driver account is required for this trip."
                 or "Instructions have already been issued for this trip."
-                or "Instructions must be issued before departure is requested."
+           or "Instructions can only be issued before departure approval."
                 or "Trip availability changed. Refresh and try again.";
         }
     }

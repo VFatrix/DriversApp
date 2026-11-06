@@ -32,5 +32,15 @@ namespace Avemel.API.Services
             int operationsUserId,
             CancellationToken cancellationToken = default);
 
+
+        Task<TripResponseDto> IssueInstructionsAsync(
+    int tripId,
+    int adminId,
+    IssueTripInstructionsRequestDto request,
+    CancellationToken cancellationToken = default);
+
+        Task<List<TripResponseDto>> GetAwaitingInstructionsAsync(
+    int adminId,
+    CancellationToken cancellationToken = default);
     }
 }
